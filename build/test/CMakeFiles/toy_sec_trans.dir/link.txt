@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/toy_sec_trans.dir/toy_sec_trans.cpp.o -o ../bin/toy_sec_trans  ../src/utils/libFaST_Utils.a ../lib/libseal-4.1.a 

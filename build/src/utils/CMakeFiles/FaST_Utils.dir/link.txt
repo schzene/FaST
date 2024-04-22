@@ -1,0 +1,2 @@
+/usr/bin/ar qc libFaST_Utils.a CMakeFiles/FaST_Utils.dir/group.cpp.o CMakeFiles/FaST_Utils.dir/he-tools.cpp.o CMakeFiles/FaST_Utils.dir/io.cpp.o CMakeFiles/FaST_Utils.dir/mat-tools.cpp.o
+/usr/bin/ranlib libFaST_Utils.a
