@@ -1,4 +1,5 @@
-#include <tools.h>
+#include <utils.h>
+#define TEST
 
 class SecureTransformer {
     CKKSKey *alice;
@@ -55,7 +56,7 @@ public:
         double ra = dist(gen);
 
         std::vector<double> input_a(inp_seq * d_module), input_b(inp_seq * d_module), ra_xa(inp_seq * d_module);
-        random_mat(input_b);
+        random_mat(input_b, 0, 0.01);
         for (i = 0; i < inp_seq * d_module; i++) {
             input_a[i] = input[i] - input_b[i];
             ra_xa[i] = ra * input_a[i];
@@ -174,7 +175,7 @@ public:
         LongPlaintext eZb_plain = Zb_secret_b.decrypt(encoder, bob);
         std::vector<double> eZb = eZb_plain.decode();
         double rb2 = dist(gen);
-#ifdef TEST
+#ifdef TEST1
         rb2 = 1;
 #endif
         std::vector<double> Db(inp_seq);
@@ -182,7 +183,7 @@ public:
         std::vector<double> O = zero_sum(inp_seq, inp_seq);
         for (size_t i = 0; i < inp_seq * inp_seq; i++) {
             eZb[i] = exp(eZb[i]) * rb2;
-#ifdef TEST
+#ifdef TEST1
             Db[i / inp_seq] = 1;
 #endif
         }
@@ -207,7 +208,7 @@ public:
         for (i = 1; i < inp_seq; i++)
             for (j = 0; j < d_k; j++)
                 Rb[i * d_k + j] = Rb[j];
-#ifdef TEST
+#ifdef TEST1
         for (i = 0; i < inp_seq; i++)
             for (j = 0; j < d_module; j++)
                 Rb[i * d_module + j] = 1;
@@ -219,7 +220,7 @@ public:
         std::vector<double> Zb(inp_seq * d_k);
         for (i = 0; i < inp_seq; i++)
             for (j = 0; j < d_k; j++)
-                Zb[i * d_k + j] = rb2; /// (Db[i] * Rb[j]);
+                Zb[i * d_k + j] = rb2 / (Db[i] * Rb[j]);
         // send H4 = {eZa_secret_a, eZb, raV_sec_a} to alice
 
         /*
@@ -248,7 +249,7 @@ public:
                 eZb[i * inp_seq + j] /= exp_sum[i];
             }
         }
-#ifdef TEST
+#ifdef TEST1
         print_mat(eZb, inp_seq, inp_seq);
 #endif
         auto Za = matmul(eZb, Rb_V, inp_seq, inp_seq, d_k);
@@ -276,12 +277,17 @@ public:
             }
         }
         // print_mat(exp_sum1, inp_seq, 1);
-        print_mat(QK, inp_seq, inp_seq);
+        // print_mat(QK, inp_seq, inp_seq);
         auto result = matmul(QK, V, inp_seq, inp_seq, d_k);
-// std::vector<double> Z(inp_seq * d_k);
-// for (i = 0; i < inp_seq * d_k; i++) Z[i] = Za[i] * Zb[i] - result[i];
-// std::cout << "errer:" <<"\n";
-// print_mat(Z, inp_seq, d_k);
+        std::vector<double> Z(inp_seq * d_k);
+        for (i = 0; i < inp_seq * d_k; i++) {
+            Z[i] = Za[i] * Zb[i] - result[i];
+            if (Z[i] < 0) {
+                Z[i] = -Z[i];
+            }
+        }
+        std::cout << "errer:" <<"\n";
+        print_mat(Z, inp_seq, d_k);
 #endif
     }
 };
@@ -296,13 +302,13 @@ int main() {
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
 
-    // size_t inp_seq = 4, d_module = 4, d_k = 4, n_heads = 5;
+    size_t inp_seq = 96, d_module = 768, d_k = 64, n_heads = 5;
     CKKSKey *alice = new CKKSKey(context, slot_count);
     CKKSKey *bob = new CKKSKey(context, slot_count);
-    // std::vector<double> input(inp_seq * d_module);
-    // random_mat(input);
-    // SecureTransformer* st = new SecureTransformer(alice, bob, input, d_module, d_k, n_heads);
-    // st->attn();
+    std::vector<double> input(inp_seq * d_module);
+    random_mat(input, 0, 0.01);
+    SecureTransformer* st = new SecureTransformer(alice, bob, input, d_module, d_k, n_heads);
+    st->attn();
 
     auto max = [](std::vector<double> z) {
         auto size = z.size() - 1;
@@ -351,7 +357,7 @@ int main() {
     std::cout << max_error << "\n";
     */
 
-    std::vector<double> very_small_numbers = {2.43e-8};
+    /* std::vector<double> very_small_numbers = {2.43e-8};
     Plaintext pt;
     encoder->encode(very_small_numbers, 1ul << 40, pt); // 1e-8
     // Ciphertext ct; alice->encryptor->encrypt(pt, ct); // 1e-8
@@ -359,7 +365,7 @@ int main() {
     std::vector<double> res;
     encoder->decode(pt, res);
     // encoder->decode(res_plain, res);
-    std::cout << res[0] << "\n";
+    std::cout << res[0] << "\n"; */
 
     // delete st;
     delete context;

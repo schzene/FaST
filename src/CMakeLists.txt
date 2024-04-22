@@ -1,20 +1,20 @@
-add_subdirectory(tools)
-add_library(FastST INTERFACE)
+add_subdirectory(utils)
+add_library(FaST INTERFACE)
 
 
-target_link_libraries(FastST
+target_link_libraries(FaST
     INTERFACE
-    FastST_Tools
+    FaST_Utils
 )
 
-target_include_directories(FastST
+target_include_directories(FaST
     INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:./>
 )
 
 install(DIRECTORY
-  FastST
+  FaST
   DESTINATION include
   FILES_MATCHING
   PATTERN "*.h"
