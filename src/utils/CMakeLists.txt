@@ -17,7 +17,6 @@ if (NOT SEAL_FOUND)
 endif()
 
 add_library(FaST_Utils
-    group.cpp
     he-tools.cpp
     io.cpp
     mat-tools.cpp
