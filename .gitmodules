@@ -1,0 +1,3 @@
+[submodule "extern/SEAL"]
+	path = extern/SEAL
+	url = https://github.com/microsoft/SEAL.git
