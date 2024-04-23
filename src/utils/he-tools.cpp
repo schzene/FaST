@@ -161,32 +161,31 @@ void LongCiphertext::send(NetIO *io, LongCiphertext *lct) {
     io->send_data(&(lct->len), sizeof(size_t));
     size_t size = lct->cipher_data.size();
     io->send_data(&size, sizeof(size_t));
-    std::stringstream os;
-    uint64_t ct_size;
     for (size_t ct = 0; ct < size; ct++) {
+        std::stringstream os;
+        uint64_t ct_size;
         lct->cipher_data[ct].save(os);
-        if (!ct)
-            ct_size = os.tellp();
+        ct_size = os.tellp();
+        string ct_ser = os.str();
+        io->send_data(&ct_size, sizeof(uint64_t));
+        io->send_data(ct_ser.c_str(), ct_ser.size());
     }
-    string ct_ser = os.str();
-    io->send_data(&ct_size, sizeof(uint64_t));
-    io->send_data(ct_ser.c_str(), ct_ser.size());
 }
 
 void LongCiphertext::recv(NetIO *io, LongCiphertext *lct, SEALContext *context) {
     io->recv_data(&(lct->len), sizeof(size_t));
     size_t size;
     io->recv_data(&size, sizeof(size_t));
-    uint64_t ct_size;
-    io->recv_data(&ct_size, sizeof(uint64_t));
-    std::stringstream is;
-    char *c_enc_result = new char[ct_size * size];
-    io->recv_data(c_enc_result, ct_size * size);
     for (size_t ct = 0; ct < size; ct++) {
         Ciphertext cct;
-        is.write(c_enc_result + ct_size * ct, ct_size);
+        std::stringstream is;
+        uint64_t ct_size;
+        io->recv_data(&ct_size, sizeof(uint64_t));
+        char *c_enc_result = new char[ct_size];
+        io->recv_data(c_enc_result, ct_size);
+        is.write(c_enc_result, ct_size);
         cct.unsafe_load(*context, is);
         lct->cipher_data.push_back(cct);
+        delete[] c_enc_result;
     }
-    delete[] c_enc_result;
 }

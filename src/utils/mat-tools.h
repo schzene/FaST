@@ -10,7 +10,7 @@ std::vector<double> matmul(std::vector<double> &mat1, std::vector<double> &mat2,
 void random_mat(std::vector<double> &mat, double min = -1., double max = 1.);
 std::vector<double> zero_sum(size_t row, size_t column);
 void load_mat(std::vector<double> &mat, const char *path);
-void norm(std::vector<double> &A);
+void norm(std::vector<double> &A, size_t row, size_t column);
 void print_mat(std::vector<double> A, size_t row, size_t column);
 void print_all_mat(std::vector<double> A, size_t row, size_t column);
 

@@ -18,11 +18,17 @@ int main(int argc, const char **argv) {
     CKKSKey *party = new CKKSKey(party_, context, slot_count);
 
     IOPack *io_pack = new IOPack(party_);
-    size_t inp_seq = 16, d_module = 32, d_k = 28;
+    size_t inp_seq = 96, d_module = 768, d_k = 64;
     std::vector<double> input(inp_seq * d_module);
     random_mat(input);
     Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k);
+
+    INIT_TIMER;
+    START_TIMER;
     attn->forward();
+    STOP_TIMER("attention");
+
+    delete attn;
     delete io_pack;
     delete party;
     delete evaluator;

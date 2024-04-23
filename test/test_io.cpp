@@ -19,4 +19,5 @@ int main(int argc, const char *argv[]) {
         size_t data = 54321;
         io_pack->io->send_data(&data, sizeof(size_t));
     }
+    delete io_pack;
 }

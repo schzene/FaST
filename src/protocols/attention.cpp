@@ -69,7 +69,7 @@ std::vector<double> Attention::forward() {
         std::vector<double> Q_div_rb1 = raQ_div_rb1_plain.decode(encoder);
         std::vector<double> K_div_rb1 = raK_div_rb1_plain.decode(encoder);
         std::vector<double> eZa(inp_seq * inp_seq);
-        random_mat(eZa);
+        random_mat(eZa, -10, 0);
         std::vector<double> negZa(eZa);
         auto sqrt_d_k = sqrt(d_k);
         for (size_t i = 0; i < inp_seq * d_k; i++) {
@@ -82,7 +82,7 @@ std::vector<double> Attention::forward() {
             negZa[i] = -negZa[i];
             eZa[i] = exp(eZa[i]);
         }
-        norm(temp_z);
+        norm(temp_z, inp_seq, inp_seq);
         LongPlaintext z_plain(temp_z, scale, party->slot_count, encoder);
         auto Zb_secret_b = rb1_square_secret_b.multiply_plain(z_plain, evaluator);
         Zb_secret_b.rescale_to_next_inplace(evaluator);

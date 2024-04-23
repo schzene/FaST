@@ -54,16 +54,18 @@ void load_mat(std::vector<double> &mat, const char *path) {
     random_mat(mat);
 }
 
-void norm(std::vector<double> &A) {
-    auto max_num = A[0];
-    auto size = A.size();
-    for (size_t i = 1; i < size; i++) {
-        if (max_num < A[i]) {
-            max_num = A[i];
+void norm(std::vector<double> &A, size_t row, size_t column) {
+    size_t i, j;
+    for (i = 0; i < row; i++) {
+        auto max = A[i * column];
+        for (j = 1; j < column; j++) {
+            if (max < A[i * column + j]) {
+                max = A[i * column + j];
+            }
         }
-    }
-    for (size_t i = 0; i < size; i++) {
-        A[i] -= max_num;
+        for (j = 0; j < column; j++) {
+            A[i * column + j] -= max;
+        }
     }
 }
 

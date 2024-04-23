@@ -151,7 +151,7 @@ public:
             negZa[i] = -negZa[i];
             eZa[i] = exp(eZa[i]);
         }
-        norm(temp_z);
+        norm(temp_z, inp_seq, inp_seq);
         LongPlaintext z_plain(temp_z, scale, alice->slot_count, encoder);
         auto Zb_secret_b = rb1_square_secret_b.multiply_plain(z_plain, evaluator);
 #ifdef TEST1
@@ -261,7 +261,7 @@ public:
         auto V = matmul(input, WV, inp_seq, d_module, d_k);
         // print_mat(K, inp_seq, d_k);
         auto QK = matmul(Q, K, inp_seq, d_k, inp_seq, true);
-        norm(QK);
+        norm(QK, inp_seq, inp_seq);
         for (i = 0; i < QK.size(); i++) {
             QK[i] /= sqrt_d_k;
             QK[i] = exp(QK[i]);
