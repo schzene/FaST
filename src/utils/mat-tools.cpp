@@ -50,6 +50,10 @@ std::vector<double> zero_sum(size_t row, size_t column) {
     return mat;
 }
 
+void load_mat(std::vector<double> &mat, const char *path) {
+    random_mat(mat);
+}
+
 void norm(std::vector<double> &A) {
     auto max_num = A[0];
     auto size = A.size();

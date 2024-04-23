@@ -25,4 +25,5 @@ add_library(FaST_Utils
 target_link_libraries(FaST_Utils
     PUBLIC
     SEAL::seal
+    FaST
 )

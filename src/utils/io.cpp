@@ -91,8 +91,7 @@ void NetIO::send_data(const void *data, int len) {
         int res = fwrite(sent + (char *)data, 1, len - sent, stream);
         if (res >= 0) {
             sent += res;
-        }
-        else {
+        } else {
             fprintf(stderr, "error: net_send_data %d\n", res);
         }
     }
@@ -113,22 +112,23 @@ void NetIO::recv_data(void *data, int len) {
         int res = fread(sent + (char *)data, 1, len - sent, stream);
         if (res >= 0) {
             sent += res;
-        }
-        else {
+        } else {
             fprintf(stderr, "error: net_send_data %d\n", res);
         }
     }
 }
 
-IOPack::IOPack(int party, int port, std::string) {
-    this->party = party;
-    this->port = port;
-    this->io = new NetIO(party == 1 ? nullptr : address.c_str(), port, false, false);
-    this->io_rev = new NetIO(party == 1 ? nullptr : address.c_str(),
-                             port + REV_PORT_OFFSET, false, true);
+IOPack::IOPack(int party, std::string address) {
+    if (party == ALICE) {
+        this->io = new NetIO(nullptr, ALICE_SEND_PORT);
+        this->io_rev = new NetIO(nullptr, BOB_SEND_PORT);
+    } else {
+        this->io_rev = new NetIO(address.c_str(), ALICE_SEND_PORT);
+        this->io = new NetIO(address.c_str(), BOB_SEND_PORT);
+    }
 }
 
 IOPack::~IOPack() {
     delete io;
-    delete io_rev;
+    // delete io_rev;
 }

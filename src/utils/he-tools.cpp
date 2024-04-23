@@ -1,6 +1,9 @@
 #include "he-tools.h"
 
-CKKSKey::CKKSKey(SEALContext *context_, size_t slot_count_) : context(context_), slot_count(slot_count_) {
+CKKSKey::CKKSKey(int party_, SEALContext *context_, size_t slot_count_) : party(party_),
+                                                                          context(context_),
+                                                                          slot_count(slot_count_) {
+    assert(party == ALICE || party == BOB);
     keygen = new KeyGenerator(*context);
     keygen->create_public_key(public_key);
     encryptor = new Encryptor(*context, public_key);
@@ -13,12 +16,14 @@ CKKSKey::~CKKSKey() {
     delete decryptor;
 }
 
-LongPlaintext::LongPlaintext(Plaintext pt, size_t slot_count_, CKKSEncoder *encoder_) : slot_count(slot_count_), encoder(encoder_) {
+LongPlaintext::LongPlaintext(Plaintext pt, size_t slot_count_) : slot_count(slot_count_) {
     len = 1;
     plain_data.push_back(pt);
 }
 
-LongPlaintext::LongPlaintext(std::vector<double> data, double scale, size_t slot_count_, CKKSEncoder *encoder_) : slot_count(slot_count_), encoder(encoder_) {
+LongPlaintext::LongPlaintext(
+    std::vector<double> data,
+    double scale, size_t slot_count_, CKKSEncoder *encoder) : slot_count(slot_count_) {
     len = data.size();
     size_t count = len / slot_count;
     if (len % slot_count) {
@@ -43,7 +48,7 @@ LongPlaintext::LongPlaintext(std::vector<double> data, double scale, size_t slot
     }
 }
 
-std::vector<double> LongPlaintext::decode() {
+std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) {
     std::vector<double> data(len);
     size_t size = plain_data.size();
     for (size_t i = 0; i < size; i++) {
@@ -74,8 +79,8 @@ LongCiphertext::LongCiphertext(LongPlaintext lpt, CKKSKey *party) {
     }
 }
 
-LongPlaintext LongCiphertext::decrypt(CKKSEncoder *encoder, CKKSKey *party) {
-    LongPlaintext lpt(party->slot_count, encoder);
+LongPlaintext LongCiphertext::decrypt(CKKSKey *party) {
+    LongPlaintext lpt(party->slot_count);
     lpt.len = len;
     for (Ciphertext ct : cipher_data) {
         Plaintext pt;
@@ -149,4 +154,39 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evalu
         for (size_t i = 0; i < cipher_data.size(); i++)
             evaluator->multiply_plain_inplace(cipher_data[i], lpt.plain_data[i]);
     }
+}
+
+void LongCiphertext::send(NetIO *io, LongCiphertext *lct) {
+    assert(lct->len > 0);
+    io->send_data(&(lct->len), sizeof(size_t));
+    size_t size = lct->cipher_data.size();
+    io->send_data(&size, sizeof(size_t));
+    std::stringstream os;
+    uint64_t ct_size;
+    for (size_t ct = 0; ct < size; ct++) {
+        lct->cipher_data[ct].save(os);
+        if (!ct)
+            ct_size = os.tellp();
+    }
+    string ct_ser = os.str();
+    io->send_data(&ct_size, sizeof(uint64_t));
+    io->send_data(ct_ser.c_str(), ct_ser.size());
+}
+
+void LongCiphertext::recv(NetIO *io, LongCiphertext *lct, SEALContext *context) {
+    io->recv_data(&(lct->len), sizeof(size_t));
+    size_t size;
+    io->recv_data(&size, sizeof(size_t));
+    uint64_t ct_size;
+    io->recv_data(&ct_size, sizeof(uint64_t));
+    std::stringstream is;
+    char *c_enc_result = new char[ct_size * size];
+    io->recv_data(c_enc_result, ct_size * size);
+    for (size_t ct = 0; ct < size; ct++) {
+        Ciphertext cct;
+        is.write(c_enc_result + ct_size * ct, ct_size);
+        cct.unsafe_load(*context, is);
+        lct->cipher_data.push_back(cct);
+    }
+    delete[] c_enc_result;
 }

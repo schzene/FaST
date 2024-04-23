@@ -1,9 +1,9 @@
 #ifndef FAST_IO_H__
 #define FAST_IO_H__
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <string>
 using std::string;
 
@@ -15,9 +15,10 @@ using std::string;
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#define REV_PORT_OFFSET 50
 typedef __m128i block128;
 typedef __m256i block256;
+
+#include <party.h>
 
 const static int NETWORK_BUFFER_SIZE = 1024 * 16; // Should change depending on the network
 
@@ -104,19 +105,17 @@ class IOPack {
 public:
     NetIO *io;
     NetIO *io_rev;
-    std::string address;
-    int party, port;
 
-    IOPack(int party, int port, std::string address = "127.0.0.1");
+    IOPack(int party, std::string address = "127.0.0.1");
     ~IOPack();
 
-    uint64_t get_rounds() {
+    inline uint64_t get_rounds() {
         // no need to count io_rev->num_rounds as io_rev is only used in parallel
         // with io
         return io->num_rounds;
     }
 
-    uint64_t get_comm() {
+    inline uint64_t get_comm() {
         return io->counter + io_rev->counter;
     }
 };

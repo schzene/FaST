@@ -1,17 +1,26 @@
 #ifndef FAST_HE_TOOLS_H__
 #define FAST_HE_TOOLS_H__
+#include <cassert>
+#include <sstream>
+#include <string>
+
+#include <party.h>
 #include <seal/seal.h>
+
+#include "io.h"
+
 using namespace seal;
 
 class CKKSKey {
 public:
+    int party;
     size_t slot_count;
     SEALContext *context;
     KeyGenerator *keygen;
     Encryptor *encryptor;
     Decryptor *decryptor;
     PublicKey public_key;
-    CKKSKey(SEALContext *context_, size_t slot_count_);
+    CKKSKey(int party_, SEALContext *context_, size_t slot_count_);
     ~CKKSKey();
 };
 
@@ -20,11 +29,10 @@ public:
     std::vector<Plaintext> plain_data;
     size_t len;
     size_t slot_count;
-    CKKSEncoder *encoder;
-    LongPlaintext(size_t slot_count_, CKKSEncoder *encoder_) : slot_count(slot_count_), encoder(encoder_) {}
-    LongPlaintext(Plaintext pt, size_t slot_count_, CKKSEncoder *encoder_);
-    LongPlaintext(std::vector<double> data, double scale, size_t slot_count_, CKKSEncoder *encoder_);
-    std::vector<double> decode();
+    LongPlaintext(size_t slot_count_) : slot_count(slot_count_) {}
+    LongPlaintext(Plaintext pt, size_t slot_count_);
+    LongPlaintext(std::vector<double> data, double scale, size_t slot_count_, CKKSEncoder *encoder);
+    std::vector<double> decode(CKKSEncoder *encoder);
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < plain_data.size(); i++) {
@@ -40,10 +48,12 @@ public:
     LongCiphertext() {}
     LongCiphertext(Ciphertext ct);
     LongCiphertext(LongPlaintext lpt, CKKSKey *party);
-    LongPlaintext decrypt(CKKSEncoder *encoder, CKKSKey *party);
+    LongPlaintext decrypt(CKKSKey *party);
     void add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
     LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator);
     void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
+    static void send(NetIO *io, LongCiphertext *lct);
+    static void recv(NetIO *io, LongCiphertext *lct, SEALContext *context);
 
     inline void rescale_to_next_inplace(Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++) {

@@ -1,10 +1,12 @@
 add_subdirectory(utils)
+add_subdirectory(protocols)
 add_library(FaST INTERFACE)
 
 
 target_link_libraries(FaST
     INTERFACE
     FaST_Utils
+    FaST_Protocols
 )
 
 target_include_directories(FaST

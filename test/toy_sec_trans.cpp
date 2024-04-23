@@ -76,7 +76,7 @@ public:
         Ciphertext ra_secret_a_;
         alice->encryptor->encrypt(ra_plain, ra_secret_a_);
         LongCiphertext ra_secret_a(ra_secret_a_);
-        // send H1 = {ra_xa_WIa, ra_xa, ra_Wa, [ra]_a} to bob, where I = Q, K, V
+        // send H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a} to bob, where I = Q, K, V
 
         /*
             Bob: revice H1, and possess: x_b, W_b
@@ -124,7 +124,7 @@ public:
         Ciphertext rb1_square_secret_b_;
         bob->encryptor->encrypt(rb1_square_plain, rb1_square_secret_b_);
         LongCiphertext rb1_square_secret_b(rb1_square_secret_b_);
-        LongPlaintext div_rb1_plain(div_rb1_plain_, bob->slot_count, encoder);
+        LongPlaintext div_rb1_plain(div_rb1_plain_, bob->slot_count);
         div_rb1_plain.mod_switch_to_inplace(raQ_sec_a.parms_id(), evaluator);
         raQ_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
         raK_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
@@ -133,10 +133,10 @@ public:
         /*
             Alice receive H2, and get Q/rs1, K/rs1, [rb1]_s
         */
-        LongPlaintext raQ_div_rb1_plain = raQ_sec_a.decrypt(encoder, alice);
-        LongPlaintext raK_div_rb1_plain = raK_sec_a.decrypt(encoder, alice);
-        std::vector<double> Q_div_rb1 = raQ_div_rb1_plain.decode();
-        std::vector<double> K_div_rb1 = raK_div_rb1_plain.decode();
+        LongPlaintext raQ_div_rb1_plain = raQ_sec_a.decrypt(alice);
+        LongPlaintext raK_div_rb1_plain = raK_sec_a.decrypt(alice);
+        std::vector<double> Q_div_rb1 = raQ_div_rb1_plain.decode(encoder);
+        std::vector<double> K_div_rb1 = raK_div_rb1_plain.decode(encoder);
         std::vector<double> eZa(inp_seq * inp_seq);
         random_mat(eZa);
         std::vector<double> negZa(eZa);
@@ -172,8 +172,8 @@ public:
         /*
             Bob receive H3, and get Zb, [exp(Zc)]_a
         */
-        LongPlaintext eZb_plain = Zb_secret_b.decrypt(encoder, bob);
-        std::vector<double> eZb = eZb_plain.decode();
+        LongPlaintext eZb_plain = Zb_secret_b.decrypt(bob);
+        std::vector<double> eZb = eZb_plain.decode(encoder);
         double rb2 = dist(gen);
 #ifdef TEST1
         rb2 = 1;
@@ -226,11 +226,11 @@ public:
         /*
             Alice receive H4, and get rs2 * exp(Z) + O, Db * exp(Zs), Rb * V,
         */
-        LongPlaintext rs2_expZ_plain = eZa_secret_a.decrypt(encoder, alice);
-        auto rs2_expZ = rs2_expZ_plain.decode();
+        LongPlaintext rs2_expZ_plain = eZa_secret_a.decrypt(alice);
+        auto rs2_expZ = rs2_expZ_plain.decode(encoder);
 
-        LongPlaintext Rb_V_plain = raV_sec_a.decrypt(encoder, alice);
-        auto Rb_V = Rb_V_plain.decode();
+        LongPlaintext Rb_V_plain = raV_sec_a.decrypt(alice);
+        auto Rb_V = Rb_V_plain.decode(encoder);
         for (size_t i = 0; i < inp_seq * d_k; i++)
             Rb_V[i] /= ra;
 
@@ -303,8 +303,8 @@ int main() {
     Evaluator *evaluator = new Evaluator(*context);
 
     size_t inp_seq = 96, d_module = 768, d_k = 64, n_heads = 5;
-    CKKSKey *alice = new CKKSKey(context, slot_count);
-    CKKSKey *bob = new CKKSKey(context, slot_count);
+    CKKSKey *alice = new CKKSKey(1, context, slot_count);
+    CKKSKey *bob = new CKKSKey(2, context, slot_count);
     std::vector<double> input(inp_seq * d_module);
     random_mat(input, 0, 0.01);
     SecureTransformer* st = new SecureTransformer(alice, bob, input, d_module, d_k, n_heads);
