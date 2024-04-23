@@ -199,8 +199,8 @@ std::vector<double> Attention::forward() {
 
         /*
             Bob receive H3, and get Zb, [exp(Zc)]_a
-            1. generate rs2, Ds, Rs, O randomly, which: sum_j O_ij = 0;
-            2. compute [r2s*exp(Z) + O]_c = r2s*exp(Zb)*[exp(Zc)]_C + O, Ds*exp(Zs), Rs*[rcV]_c 
+            1. generate rb2, Ds, Rs, O randomly, which: sum_j O_ij = 0;
+            2. compute [rb2*exp(Z) + O]_c = rb2*exp(Zb)*[exp(Zc)]_C + O, Ds*exp(Zs), Rs*[rcV]_c 
         */
         LongCiphertext Zb_secret_b, eZa_secret_a;
         LongCiphertext::recv(io_pack->io_rev, &Zb_secret_b, context);
@@ -214,8 +214,8 @@ std::vector<double> Attention::forward() {
         for (size_t i = 0; i < inp_seq * inp_seq; i++) {
             eZb[i] = exp(eZb[i]) * rb2;
         }
-        LongPlaintext r2s_expZb_plain(eZb, scale, party->slot_count, encoder);
-        eZa_secret_a.multiply_plain_inplace(r2s_expZb_plain, evaluator);
+        LongPlaintext rb2_expZb_plain(eZb, scale, party->slot_count, encoder);
+        eZa_secret_a.multiply_plain_inplace(rb2_expZb_plain, evaluator);
         eZa_secret_a.rescale_to_next_inplace(evaluator);
         eZa_secret_a.scale(scale);
         LongPlaintext O_plain(O, scale, party->slot_count, encoder);
