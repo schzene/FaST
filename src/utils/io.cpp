@@ -120,15 +120,27 @@ void NetIO::recv_data(void *data, int len) {
 
 IOPack::IOPack(int party, std::string address) {
     if (party == ALICE) {
-        this->io = new NetIO(nullptr, ALICE_SEND_PORT);
+        this->io = new NetIO(nullptr, ALICE_SEND_PORT, false, true);
         this->io_rev = new NetIO(nullptr, BOB_SEND_PORT);
     } else {
-        this->io_rev = new NetIO(address.c_str(), ALICE_SEND_PORT);
+        this->io_rev = new NetIO(address.c_str(), ALICE_SEND_PORT, false, true);
         this->io = new NetIO(address.c_str(), BOB_SEND_PORT);
     }
 }
 
 IOPack::~IOPack() {
     delete io;
-    // delete io_rev;
+    delete io_rev;
+}
+
+void IOPack::send_data(const void* data, int len) {
+    io->send_data(data, len);
+    io->last_call = LastCall::Send;
+    io->last_call = LastCall::Send;
+}
+
+void IOPack::recv_data(void* data, int len) {
+    io_rev->recv_data(data, len);
+    io->last_call = LastCall::Recv;
+    io->last_call = LastCall::Recv;
 }

@@ -108,10 +108,12 @@ public:
 
     IOPack(int party, std::string address = "127.0.0.1");
     ~IOPack();
+    void send_data(const void *data, int len);
+    void recv_data(void *data, int len);
 
     inline uint64_t get_rounds() {
-        // no need to count io_rev->num_rounds as io_rev is only used in parallel
-        // with io
+        // no need to count io_rev->num_rounds 
+        // as io_rev is only used in parallelwith io
         return io->num_rounds;
     }
 

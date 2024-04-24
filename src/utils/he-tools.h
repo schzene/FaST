@@ -11,6 +11,15 @@
 
 using namespace seal;
 
+class length_error : public std::exception {
+    const char* message;
+public:
+    length_error(const char* msg) : message(msg) {}
+    const char* what() const throw() override {
+        return message;
+    }
+};
+
 class CKKSKey {
 public:
     int party;
@@ -50,10 +59,13 @@ public:
     LongCiphertext(LongPlaintext lpt, CKKSKey *party);
     LongPlaintext decrypt(CKKSKey *party);
     void add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    void add_inplace(LongCiphertext &lct, Evaluator* evaluator);
+    LongCiphertext add(LongCiphertext &lct, Evaluator* evaluator);
     void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    static void send(NetIO *io, LongCiphertext *lct);
-    static void recv(NetIO *io, LongCiphertext *lct, SEALContext *context);
+    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    static void send(IOPack *io_pack, LongCiphertext *lct);
+    static void recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context);
 
     inline void rescale_to_next_inplace(Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++) {

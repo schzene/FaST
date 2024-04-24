@@ -14,12 +14,12 @@ void norm(std::vector<double> &A, size_t row, size_t column);
 void print_mat(std::vector<double> A, size_t row, size_t column);
 void print_all_mat(std::vector<double> A, size_t row, size_t column);
 
-inline void send_mat(NetIO *io, std::vector<double> *mat) {
-    io->send_data(mat->data(), mat->size() * sizeof(double));
+inline void send_mat(IOPack *io_pack, std::vector<double> *mat) {
+    io_pack->send_data(mat->data(), mat->size() * sizeof(double));
 }
 
-inline void recv_mat(NetIO *io, std::vector<double> *mat) {
-    io->recv_data(mat->data(), mat->size() * sizeof(double));
+inline void recv_mat(IOPack *io_pack, std::vector<double> *mat) {
+    io_pack->recv_data(mat->data(), mat->size() * sizeof(double));
 }
 
 #endif
