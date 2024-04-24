@@ -11,9 +11,11 @@ int main(int argc, const char **argv) {
     Evaluator *evaluator = new Evaluator(*context);
     int party_ = argc > 1 ? 1 : 2;
     if (party_ == ALICE) {
-        std::cout << "Party: ALICE" << "\n";
+        std::cout << "Party: ALICE"
+                  << "\n";
     } else if (party_ == BOB) {
-        std::cout << "Party: BOB" << "\n";
+        std::cout << "Party: BOB"
+                  << "\n";
     }
     CKKSKey *party = new CKKSKey(party_, context, slot_count);
 
@@ -23,12 +25,12 @@ int main(int argc, const char **argv) {
     std::vector<double> input(inp_seq * d_module);
     random_mat(input);
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);
-    Multi_Head_Attention *attn = new Multi_Head_Attention(n_head, party, context, io_pack, input, d_module, d_k);
+    Multi_Head_Attention *attn = new Multi_Head_Attention(party, context, io_pack, n_head, d_module, d_k);
 
     LongCiphertext result;
     INIT_TIMER;
     START_TIMER;
-    attn->forward(result);
+    result = attn->forward(input);
     STOP_TIMER("attention");
     auto comm = io_pack->get_comm();
     if (comm < 1024) {

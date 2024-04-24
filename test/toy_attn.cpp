@@ -1,7 +1,7 @@
 #include <utils.h>
 #define TEST
 
-class SecureTransformer {
+class SecureAttention {
     CKKSKey *alice;
     CKKSKey *bob;
     CKKSEncoder *encoder;
@@ -11,7 +11,7 @@ class SecureTransformer {
 
 public:
     double scale = 1ul << 40;
-    SecureTransformer(CKKSKey *alice_, CKKSKey *bob_, std::vector<double> input_,
+    SecureAttention(CKKSKey *alice_, CKKSKey *bob_, std::vector<double> input_,
                       size_t d_module_, size_t d_k_, size_t n_heads_) : alice(alice_),
                                                                         bob(bob_),
                                                                         input(input_),
@@ -22,12 +22,12 @@ public:
         evaluator = new Evaluator(*(alice->context));
     }
 
-    ~SecureTransformer() {
+    ~SecureAttention() {
         delete encoder;
         delete evaluator;
     }
 
-    void attn() {
+    void forward() {
         size_t i, j;
         size_t inp_seq = this->input.size() / d_module;
         std::vector<double> ra_WQa(d_module * d_k),
@@ -286,7 +286,8 @@ public:
                 Z[i] = -Z[i];
             }
         }
-        std::cout << "errer:" <<"\n";
+        std::cout << "errer:"
+                  << "\n";
         print_mat(Z, inp_seq, d_k);
 #endif
     }
@@ -307,19 +308,9 @@ int main() {
     CKKSKey *bob = new CKKSKey(2, context, slot_count);
     std::vector<double> input(inp_seq * d_module);
     random_mat(input, 0, 0.01);
-    SecureTransformer* st = new SecureTransformer(alice, bob, input, d_module, d_k, n_heads);
-    st->attn();
+    SecureAttention *sattn = new SecureAttention(alice, bob, input, d_module, d_k, n_heads);
+    sattn->forward();
 
-    auto max = [](std::vector<double> z) {
-        auto size = z.size() - 1;
-        if (size < 0)
-            return 0.;
-        auto max_num = z[0];
-        for (; size >= 1; size--)
-            if (max_num < z[size])
-                max_num = z[size];
-        return max_num;
-    };
     /*std::vector<double> input1(8193);
     std::vector<double> input2(8193);
     random_mat(input1);
@@ -367,8 +358,10 @@ int main() {
     // encoder->decode(res_plain, res);
     std::cout << res[0] << "\n"; */
 
-    // delete st;
     delete context;
+    delete encoder;
+    delete evaluator;
+    delete sattn;
     delete alice;
     delete bob;
 }

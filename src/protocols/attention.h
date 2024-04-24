@@ -10,25 +10,24 @@ class Attention {
     SEALContext *context;
     Evaluator *evaluator;
     IOPack *io_pack;
-    std::vector<double> input;
     size_t d_module, d_k, head;
 
 public:
     friend Multi_Head_Attention;
     double scale = 1ul << 40;
-    Attention(CKKSKey *party_, SEALContext *context, IOPack *io_pack_, std::vector<double> &input_,
+    Attention(CKKSKey *party_, SEALContext *context, IOPack *io_pack_,
               size_t d_module_, size_t d_k_, size_t head_);
     ~Attention();
-    void forward(LongCiphertext &result);
+    LongCiphertext forward(const std::vector<double> &input);
 };
 
 class Multi_Head_Attention {
 public:
-    Attention** attns;
+    Attention **attns;
     size_t n_head;
-    Multi_Head_Attention(size_t n_head_, CKKSKey *party_, SEALContext *context_, IOPack *io_pack_,
-                         std::vector<double> &input_, size_t d_module_, size_t d_k_);
+    Multi_Head_Attention(CKKSKey *party, SEALContext *context, IOPack *io_pack,
+                         size_t n_head_, size_t d_module, size_t d_k);
     ~Multi_Head_Attention();
-    void forward(LongCiphertext &result);
+    LongCiphertext forward(const std::vector<double> &input);
 };
 #endif

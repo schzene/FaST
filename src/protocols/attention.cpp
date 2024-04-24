@@ -1,9 +1,8 @@
 #include "attention.h"
-Attention::Attention(CKKSKey *party_, SEALContext *context_, IOPack *io_pack_, std::vector<double> &input_,
+Attention::Attention(CKKSKey *party_, SEALContext *context_, IOPack *io_pack_,
                      size_t d_module_, size_t d_k_, size_t head_) : party(party_),
                                                                     context(context_),
                                                                     io_pack(io_pack_),
-                                                                    input(input_),
                                                                     d_module(d_module_),
                                                                     d_k(d_k_),
                                                                     head(head_) {
@@ -16,10 +15,11 @@ Attention::~Attention() {
     delete evaluator;
 }
 
-void Attention::forward(LongCiphertext &Attn_b) {
+LongCiphertext Attention::forward(const std::vector<double> &input) {
     size_t i, j;
-    size_t inp_seq = this->input.size() / d_module;
+    size_t inp_seq = input.size() / d_module;
     std::vector<double> WQ(d_module * d_k), WK(d_module * d_k), WV(d_module * d_k), Attn(inp_seq * d_k);
+    LongCiphertext output;
     load_mat(WQ, "WQ");
     load_mat(WK, "WK");
     load_mat(WV, "WV");
@@ -112,7 +112,7 @@ void Attention::forward(LongCiphertext &Attn_b) {
         LongCiphertext::recv(io_pack, &eZa_secret_a, context);
         recv_mat(io_pack, &eZb);
         LongCiphertext::recv(io_pack, &raV_sec_a, context);
-        LongCiphertext::recv(io_pack, &Attn_b, context);
+        LongCiphertext::recv(io_pack, &output, context);
 
         LongPlaintext rs2_expZ_plain = eZa_secret_a.decrypt(party);
         auto rs2_expZ = rs2_expZ_plain.decode(encoder);
@@ -139,9 +139,9 @@ void Attention::forward(LongCiphertext &Attn_b) {
 #endif
         auto Attn = matmul(eZb, Rb_V, inp_seq, inp_seq, d_k);
         LongPlaintext Attn_plain(Attn, scale, party->slot_count, encoder);
-        Attn_b.multiply_plain_inplace(Attn_plain, evaluator);
-        Attn_b.rescale_to_next_inplace(evaluator);
-        Attn_b.scale(scale);
+        output.multiply_plain_inplace(Attn_plain, evaluator);
+        output.rescale_to_next_inplace(evaluator);
+        output.scale(scale);
     } else if (party->party == BOB) {
         /*
             Bob: revice H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a}, and possess: x_b, W_b
@@ -262,13 +262,14 @@ void Attention::forward(LongCiphertext &Attn_b) {
         // send H4 = {eZa_secret_a, eZb, raV_sec_a, [Attn]_s} to alice
     }
     std::cout << "Secure Attention done.\n";
+    return output;
 }
 
-Multi_Head_Attention::Multi_Head_Attention(size_t n_head_, CKKSKey *party, SEALContext *context, IOPack *io_pack,
-                                           std::vector<double> &input, size_t d_module, size_t d_k) : n_head(n_head_) {
+Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, SEALContext *context, IOPack *io_pack,
+                                           size_t n_head_, size_t d_module, size_t d_k) : n_head(n_head_) {
     attns = new Attention *[n_head];
     for (size_t i = 0; i < n_head; i++) {
-        attns[i] = new Attention(party, context, io_pack, input, d_module, d_k, i);
+        attns[i] = new Attention(party, context, io_pack, d_module, d_k, i);
     }
 }
 
@@ -279,13 +280,13 @@ Multi_Head_Attention::~Multi_Head_Attention() {
     delete[] attns;
 }
 
-void Multi_Head_Attention::forward(LongCiphertext &result) {
-    attns[0]->forward(result);
+LongCiphertext Multi_Head_Attention::forward(const std::vector<double> &input) {
+    LongCiphertext output = attns[0]->forward(input);
     for (size_t i = 1; i < n_head; i++) {
-        LongCiphertext lct;
-        attns[i]->forward(lct);
+        LongCiphertext lct = attns[i]->forward(input);
         if (attns[i]->party->party == ALICE) {
-            result.add_inplace(lct, attns[i]->evaluator);
+            output.add_inplace(lct, attns[i]->evaluator);
         }
     }
+    return output;
 }

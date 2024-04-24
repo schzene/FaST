@@ -1,8 +1,8 @@
 #include "mat-tools.h"
 
 std::vector<double> matmul(
-    std::vector<double> &mat1,
-    std::vector<double> &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans) {
+    const std::vector<double> &mat1,
+    const std::vector<double> &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans) {
     std::vector<double> result(dim1 * dim3);
     size_t i, j, k;
     if (!trans) {
@@ -69,7 +69,7 @@ void norm(std::vector<double> &A, size_t row, size_t column) {
     }
 }
 
-void print_mat(std::vector<double> A, size_t row, size_t column) {
+void print_mat(const std::vector<double> &A, size_t row, size_t column) {
     size_t i, j;
     bool flag1, flag2 = false;
     for (i = 0; i < row; i++) {
@@ -92,7 +92,7 @@ void print_mat(std::vector<double> A, size_t row, size_t column) {
     std::cout << row << " x " << column << std::endl;
 }
 
-void print_all_mat(std::vector<double> A, size_t row, size_t column) {
+void print_all_mat(const std::vector<double> &A, size_t row, size_t column) {
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {

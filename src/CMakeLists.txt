@@ -1,10 +1,10 @@
 add_subdirectory(utils)
 add_subdirectory(protocols)
-add_library(FaST INTERFACE)
+add_library(FaST
+    transformer.cpp
+)
 
-
-target_link_libraries(FaST
-    INTERFACE
+target_link_libraries(FaST PUBLIC
     FaST_Utils
     FaST_Protocols
 )

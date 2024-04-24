@@ -1,5 +1,6 @@
 add_library(FaST_Protocols
     attention.cpp
+    ffn.cpp
     layer-norm1.cpp
     layer-norm2.cpp
 )
