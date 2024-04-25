@@ -1,3 +1,5 @@
+
+
 find_package(SEAL 4.1.1 EXACT QUIET PATHS "${PROJECT_SOURCE_DIR}/build/" NO_DEFAULT_PATH)
 if (NOT SEAL_FOUND)
     message(STATUS "SEAL 4.1.1 was not found: clone and install SEAL locally")
@@ -16,6 +18,7 @@ if (NOT SEAL_FOUND)
     find_package(SEAL 4.1.1 EXACT REQUIRED PATHS "${PROJECT_SOURCE_DIR}/build/" NO_DEFAULT_PATH)
 endif()
 
+
 add_library(FaST_Utils
     he-tools.cpp
     io.cpp
@@ -25,5 +28,4 @@ add_library(FaST_Utils
 target_link_libraries(FaST_Utils
     PUBLIC
     SEAL::seal
-    FaST
 )

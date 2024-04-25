@@ -18,44 +18,55 @@ using std::string;
 typedef __m128i block128;
 typedef __m256i block256;
 
-#include <party.h>
+#include <config.h>
 
 const static int NETWORK_BUFFER_SIZE = 1024 * 16; // Should change depending on the network
 
 template <typename T>
-class IOChannel {
+class IOChannel
+{
 public:
-    void send_data(const void *data, int nbyte) {
+    void send_data(const void *data, int nbyte)
+    {
         derived().send_data(data, nbyte);
     }
 
-    void recv_data(void *data, int nbyte) {
+    void recv_data(void *data, int nbyte)
+    {
         derived().recv_data(data, nbyte);
     }
 
-    void send_block(const block128 *data, int nblock) {
+    void send_block(const block128 *data, int nblock)
+    {
         send_data(data, nblock * sizeof(block128));
     }
 
-    void send_block(const block256 *data, int nblock) {
+    void send_block(const block256 *data, int nblock)
+    {
         send_data(data, nblock * sizeof(block256));
     }
 
-    void recv_block(block128 *data, int nblock) {
+    void recv_block(block128 *data, int nblock)
+    {
         recv_data(data, nblock * sizeof(block128));
     }
 
 private:
-    T &derived() {
+    T &derived()
+    {
         return *static_cast<T *>(this);
     }
 };
 
-enum class LastCall { None,
-                      Send,
-                      Recv };
+enum class LastCall
+{
+    None,
+    Send,
+    Recv
+};
 
-class NetIO : public IOChannel<NetIO> {
+class NetIO : public IOChannel<NetIO>
+{
 public:
     bool is_server;
     int mysocket = -1;
@@ -76,32 +87,38 @@ public:
     void send_data(const void *data, int len);
     void recv_data(void *data, int len);
 
-    inline void set_FBF() {
+    inline void set_FBF()
+    {
         flush();
         setvbuf(stream, buffer, _IOFBF, NETWORK_BUFFER_SIZE);
     }
 
-    inline void set_NBF() {
+    inline void set_NBF()
+    {
         flush();
         setvbuf(stream, buffer, _IONBF, NETWORK_BUFFER_SIZE);
     }
 
-    inline void set_nodelay() {
+    inline void set_nodelay()
+    {
         const int one = 1;
         setsockopt(consocket, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     }
 
-    inline void set_delay() {
+    inline void set_delay()
+    {
         const int zero = 0;
         setsockopt(consocket, IPPROTO_TCP, TCP_NODELAY, &zero, sizeof(zero));
     }
 
-    inline void flush() {
+    inline void flush()
+    {
         fflush(stream);
     }
 };
 
-class IOPack {
+class IOPack
+{
 public:
     NetIO *io;
     NetIO *io_rev;
@@ -111,13 +128,15 @@ public:
     void send_data(const void *data, int len);
     void recv_data(void *data, int len);
 
-    inline uint64_t get_rounds() {
-        // no need to count io_rev->num_rounds 
+    inline uint64_t get_rounds()
+    {
+        // no need to count io_rev->num_rounds
         // as io_rev is only used in parallelwith io
         return io->num_rounds;
     }
 
-    inline uint64_t get_comm() {
+    inline uint64_t get_comm()
+    {
         return io->counter + io_rev->counter;
     }
 };

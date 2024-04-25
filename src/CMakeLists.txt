@@ -1,3 +1,5 @@
+include_directories(${CMAKE_CURRENT_LIST_DIR})
+
 add_subdirectory(utils)
 add_subdirectory(protocols)
 add_library(FaST
@@ -10,7 +12,7 @@ target_link_libraries(FaST PUBLIC
 )
 
 target_include_directories(FaST
-    INTERFACE
+    PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:./>
 )
