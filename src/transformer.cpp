@@ -1,6 +1,6 @@
 #include "transformer.h"
-Transformer::Transformer(CKKSKey *party, SEALContext *context, IOPack *io_pack, size_t d_k) {
-    this->multi_head_attn = new Multi_Head_Attention(party, context, io_pack);
+Transformer::Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack, size_t d_k) {
+    this->multi_head_attn = new Multi_Head_Attention(party, encoder, evaluator, io_pack);
     this->ln1 = new LayerNorm1();
     this->ffn = new FFN();
     this->ln2 = new LayerNorm2();

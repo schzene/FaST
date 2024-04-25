@@ -22,7 +22,7 @@ int main(int argc, const char **argv) {
     std::vector<double> input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);
-    Multi_Head_Attention *attn = new Multi_Head_Attention(party, context, io_pack);
+    Multi_Head_Attention *attn = new Multi_Head_Attention(party, encoder, evaluator, io_pack);
 
     LongCiphertext result;
     INIT_TIMER;

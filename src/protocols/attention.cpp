@@ -1,17 +1,4 @@
 #include "attention.h"
-Attention::Attention(CKKSKey *party_, SEALContext *context_, IOPack *io_pack_, size_t head_) : party(party_),
-                                                                                               context(context_),
-                                                                                               io_pack(io_pack_),
-                                                                                               head(head_) {
-    encoder = new CKKSEncoder(*(party->context));
-    evaluator = new Evaluator(*(party->context));
-}
-
-Attention::~Attention() {
-    delete encoder;
-    delete evaluator;
-}
-
 std::vector<double> Attention::forward(const std::vector<double> &input) {
     size_t i, j;
     size_t d_k = d_module / n_heads;
@@ -37,11 +24,7 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
         auto ra_xa_WQa = matmul(input, WQ, batch_size, d_module, d_k);
         auto ra_xa_WKa = matmul(input, WK, batch_size, d_module, d_k);
         auto ra_xa_WVa = matmul(input, WV, batch_size, d_module, d_k);
-        Plaintext ra_plain;
-        encoder->encode(ra, scale, ra_plain);
-        Ciphertext ra_secret_a_;
-        party->encryptor->encrypt(ra_plain, ra_secret_a_);
-        LongCiphertext ra_secret_a(ra_secret_a_);
+        LongCiphertext ra_secret_a(ra, party, encoder);
         send_mat(io_pack, &ra_xa_WQa);
         send_mat(io_pack, &ra_xa_WKa);
         send_mat(io_pack, &ra_xa_WVa);
@@ -90,8 +73,6 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
             random_mat(temp, -1e-7, 1e-7);
             Zb_secret_b = LongCiphertext(LongPlaintext(temp, encoder), party);
         }
-        Zb_secret_b.rescale_to_next_inplace(evaluator);
-        Zb_secret_b.scale(scale);
         LongPlaintext negZc_plain(negZa, encoder);
         negZc_plain.mod_switch_to_inplace(Zb_secret_b.parms_id(), evaluator);
         Zb_secret_b.add_plain_inplace(negZc_plain, evaluator);
@@ -175,8 +156,6 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
             LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
-            raI_secret_a.rescale_to_next_inplace(evaluator);
-            raI_secret_a.scale(scale);
 
             std::vector<double> temp_raI(batch_size * d_k);
             auto temp_raI1 = matmul(ra_xa, WIb, batch_size, d_module, d_k);
@@ -197,15 +176,9 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
         // [r_aV]_A
         LongCiphertext raV_sec_a = cal_raI_A(input, WV, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a,
                                              party, encoder, evaluator, scale, d_k);
-        double rb1 = dist(gen), div_rb1 = 1 / rb1, rb1_square = rb1 * rb1;
-        Plaintext div_rb1_plain_;
-        encoder->encode(div_rb1, scale, div_rb1_plain_);
-        Plaintext rb1_square_plain;
-        encoder->encode(rb1_square, scale, rb1_square_plain);
-        Ciphertext rb1_square_secret_b_;
-        party->encryptor->encrypt(rb1_square_plain, rb1_square_secret_b_);
-        LongCiphertext rb1_square_secret_b(rb1_square_secret_b_);
-        LongPlaintext div_rb1_plain(div_rb1_plain_);
+        double rb1 = dist(gen);
+        LongPlaintext div_rb1_plain(1. / rb1, encoder);
+        LongCiphertext rb1_square_secret_b(rb1 * rb1, party, encoder);
         div_rb1_plain.mod_switch_to_inplace(raQ_sec_a.parms_id(), evaluator);
         raQ_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
         raK_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
@@ -242,8 +215,6 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
             random_mat(temp, -1e-7, 1e-7);
             eZa_secret_a = LongCiphertext(LongPlaintext(temp, encoder), party);
         }
-        eZa_secret_a.rescale_to_next_inplace(evaluator);
-        eZa_secret_a.scale(scale);
         LongPlaintext O_plain(O, encoder);
         O_plain.mod_switch_to_inplace(eZa_secret_a.parms_id(), evaluator);
         eZa_secret_a.add_plain_inplace(O_plain, evaluator);
@@ -275,10 +246,10 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
     }
 }
 
-Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, SEALContext *context, IOPack *io_pack) {
+Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack) {
     attns = new Attention *[n_heads];
     for (size_t i = 0; i < n_heads; i++) {
-        attns[i] = new Attention(party, context, io_pack, i);
+        attns[i] = new Attention(party, encoder, evaluator, io_pack, i);
     }
 }
 

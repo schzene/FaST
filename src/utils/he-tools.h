@@ -43,6 +43,7 @@ public:
     size_t len;
     LongPlaintext() {}
     LongPlaintext(Plaintext pt);
+    LongPlaintext(double data, CKKSEncoder *encoder);
     LongPlaintext(std::vector<double> data, CKKSEncoder *encoder);
     std::vector<double> decode(CKKSEncoder *encoder);
 
@@ -59,6 +60,7 @@ public:
     size_t len;
     LongCiphertext() {}
     LongCiphertext(Ciphertext ct);
+    LongCiphertext(double data, CKKSKey *party, CKKSEncoder* encoder);
     LongCiphertext(LongPlaintext lpt, CKKSKey *party);
     LongPlaintext decrypt(CKKSKey *party);
     void add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
@@ -75,8 +77,14 @@ public:
             evaluator->rescale_to_next_inplace(cipher_data[i]);
         }
     }
+    
+    inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
+        for (size_t i = 0; i < cipher_data.size(); i++) {
+            evaluator->mod_switch_to_inplace(cipher_data[i], parms_id);
+        }
+    }
 
-    inline void scale(double scale_) {
+    inline void rescale(double scale_) {
         for (size_t i = 0; i < cipher_data.size(); i++) {
             cipher_data[i].scale() = scale_;
         }

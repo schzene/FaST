@@ -67,11 +67,7 @@ public:
         auto ra_xa_WKa = matmul(input_a, ra_WKa, batch_size, d_module, d_k);
         auto ra_xa_WVa = matmul(input_a, ra_WVa, batch_size, d_module, d_k);
 
-        Plaintext ra_plain;
-        encoder->encode(ra, scale, ra_plain);
-        Ciphertext ra_secret_a_;
-        alice->encryptor->encrypt(ra_plain, ra_secret_a_);
-        LongCiphertext ra_secret_a(ra_secret_a_);
+        LongCiphertext ra_secret_a(ra, alice, encoder);
         // send H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a} to bob, where I = Q, K, V
 
         /*
@@ -85,8 +81,6 @@ public:
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
             LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
-            raI_secret_a.rescale_to_next_inplace(evaluator);
-            raI_secret_a.scale(scale);
 
             std::vector<double> temp_raI(batch_size * d_k);
             auto temp_raI1 = matmul(ra_xa, WIb, batch_size, d_module, d_k);
@@ -111,15 +105,9 @@ public:
             raK[i] /= ra;
         print_mat(raK, batch_size, d_k);
 #endif
-        double rb1 = dist(gen), div_rb1 = 1 / rb1, rb1_square = rb1 * rb1;
-        Plaintext div_rb1_plain_;
-        encoder->encode(div_rb1, scale, div_rb1_plain_);
-        Plaintext rb1_square_plain;
-        encoder->encode(rb1_square, scale, rb1_square_plain);
-        Ciphertext rb1_square_secret_b_;
-        bob->encryptor->encrypt(rb1_square_plain, rb1_square_secret_b_);
-        LongCiphertext rb1_square_secret_b(rb1_square_secret_b_);
-        LongPlaintext div_rb1_plain(div_rb1_plain_);
+        double rb1 = dist(gen);
+        LongCiphertext rb1_square_secret_b(rb1 * rb1, bob, encoder);
+        LongPlaintext div_rb1_plain(1. / rb1, encoder);
         div_rb1_plain.mod_switch_to_inplace(raQ_sec_a.parms_id(), evaluator);
         raQ_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
         raK_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
@@ -154,8 +142,6 @@ public:
         auto Zb1 = Zb_plain.decode();
         print_mat(Zb1, batch_size, batch_size);
 #endif
-        Zb_secret_b.rescale_to_next_inplace(evaluator);
-        Zb_secret_b.scale(scale);
         LongPlaintext negZc_plain(negZa, encoder);
         negZc_plain.mod_switch_to_inplace(Zb_secret_b.parms_id(), evaluator);
         Zb_secret_b.add_plain_inplace(negZc_plain, evaluator);
@@ -190,8 +176,6 @@ public:
 #endif
         LongPlaintext r2s_expZb_plain(eZb, encoder);
         eZa_secret_a.multiply_plain_inplace(r2s_expZb_plain, evaluator);
-        eZa_secret_a.rescale_to_next_inplace(evaluator);
-        eZa_secret_a.scale(scale);
         LongPlaintext O_plain(O, encoder);
         O_plain.mod_switch_to_inplace(eZa_secret_a.parms_id(), evaluator);
         eZa_secret_a.add_plain_inplace(O_plain, evaluator);
