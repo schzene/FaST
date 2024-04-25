@@ -7,16 +7,14 @@ class SecureAttention {
     CKKSEncoder *encoder;
     Evaluator *evaluator;
     std::vector<double> input;
-    size_t d_module, d_k, n_heads;
+    size_t d_k;
 
 public:
     SecureAttention(CKKSKey *alice_, CKKSKey *bob_, std::vector<double> input_,
-                      size_t d_module_, size_t d_k_, size_t n_heads_) : alice(alice_),
-                                                                        bob(bob_),
-                                                                        input(input_),
-                                                                        d_module(d_module_),
-                                                                        d_k(d_k_),
-                                                                        n_heads(n_heads_) {
+                    size_t d_k_) : alice(alice_),
+                                   bob(bob_),
+                                   input(input_),
+                                   d_k(d_k_) {
         encoder = new CKKSEncoder(*(alice->context));
         evaluator = new Evaluator(*(alice->context));
     }
@@ -28,7 +26,6 @@ public:
 
     void forward() {
         size_t i, j;
-        size_t batch_size = this->input.size() / d_module;
         std::vector<double> ra_WQa(d_module * d_k),
             ra_WKa(d_module * d_k),
             ra_WVa(d_module * d_k),
@@ -84,8 +81,7 @@ public:
         */
         auto cal_raI_A = [](std::vector<double> input_b, std::vector<double> WIb, std::vector<double> ra_xa, std::vector<double> ra_WIa, std::vector<double> ra_xa_WIa,
                             LongCiphertext ra_secret_a,
-                            CKKSKey *bob, CKKSEncoder *encoder, Evaluator *evaluator,
-                            double scale, size_t batch_size, size_t d_module, size_t d_k, size_t n_heads) {
+                            CKKSKey *bob, CKKSEncoder *encoder, Evaluator *evaluator, size_t d_k) {
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
             LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
@@ -103,11 +99,11 @@ public:
             return raI_secret_a;
         };
         // [r_aQ]_A
-        LongCiphertext raQ_sec_a = cal_raI_A(input_b, WQb, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a, bob, encoder, evaluator, scale, batch_size, d_module, d_k, n_heads);
+        LongCiphertext raQ_sec_a = cal_raI_A(input_b, WQb, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a, bob, encoder, evaluator, d_k);
         // [r_aK]_A
-        LongCiphertext raK_sec_a = cal_raI_A(input_b, WKb, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a, bob, encoder, evaluator, scale, batch_size, d_module, d_k, n_heads);
+        LongCiphertext raK_sec_a = cal_raI_A(input_b, WKb, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a, bob, encoder, evaluator, d_k);
         // [r_aV]_A
-        LongCiphertext raV_sec_a = cal_raI_A(input_b, WVb, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a, bob, encoder, evaluator, scale, batch_size, d_module, d_k, n_heads);
+        LongCiphertext raV_sec_a = cal_raI_A(input_b, WVb, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a, bob, encoder, evaluator, d_k);
 #ifdef TEST1
         LongPlaintext raK_plain = raK_sec_a.decrypt(encoder, alice);
         auto raK = raK_plain.decode();
@@ -300,12 +296,12 @@ int main() {
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
 
-    size_t batch_size = 128, d_module = 768, d_k = 64, n_heads = 12;
+    size_t d_k = d_module / n_heads;
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
     std::vector<double> input(batch_size * d_module);
     random_mat(input, 0, 0.01);
-    SecureAttention *sattn = new SecureAttention(alice, bob, input, d_module, d_k, n_heads);
+    SecureAttention *sattn = new SecureAttention(alice, bob, input, d_k);
     sattn->forward();
 
     /*std::vector<double> input1(8193);

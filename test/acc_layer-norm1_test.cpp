@@ -6,9 +6,8 @@ class SecureLayerNorm1 {
     CKKSEncoder *encoder;
     Evaluator *evaluator;
     std::vector<double> input;
-    size_t d_module, n_heads;
 
-    SecureLayerNorm1(size_t d_module_): d_module(d_module_) {
+    SecureLayerNorm1() {
 
     }
 
@@ -20,7 +19,6 @@ class SecureLayerNorm1 {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<> dist(-1, 1);
-        size_t batch_size = input.size() / d_module;
         size_t i, j;
         std::vector<double> input_a(batch_size * d_module), input_b(batch_size * d_module);
         random_mat(input_b, 0, 0.01);

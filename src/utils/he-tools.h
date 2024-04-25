@@ -1,5 +1,5 @@
 #ifndef FAST_HE_TOOLS_H__
-#define FAST_HE_TOOLS_cdH__
+#define FAST_HE_TOOLS_H__
 #include <cassert>
 #include <sstream>
 #include <string>

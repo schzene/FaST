@@ -9,8 +9,7 @@ class Transformer {
     LayerNorm2 *ln2;
 
 public:
-    Transformer(CKKSKey *party, SEALContext *context, IOPack *io_pack,
-                size_t n_head, size_t d_module, size_t d_k);
+    Transformer(CKKSKey *party, SEALContext *context, IOPack *io_pack, size_t d_k);
     ~Transformer();
     void forward(const std::vector<double> &input);
 };

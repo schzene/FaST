@@ -171,7 +171,7 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
                             std::vector<double> ra_xa, std::vector<double> ra_WIa, std::vector<double> ra_xa_WIa,
                             LongCiphertext ra_secret_a,
                             CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
-                            double scale, size_t batch_size, size_t d_module, size_t d_k) {
+                            double scale, size_t d_k) {
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
             LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
@@ -190,13 +190,13 @@ std::vector<double> Attention::forward(const std::vector<double> &input) {
         };
         // [r_aQ]_A
         LongCiphertext raQ_sec_a = cal_raI_A(input, WQ, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a,
-                                             party, encoder, evaluator, scale, batch_size, d_module, d_k);
+                                             party, encoder, evaluator, scale, d_k);
         // [r_aK]_A
         LongCiphertext raK_sec_a = cal_raI_A(input, WK, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a,
-                                             party, encoder, evaluator, scale, batch_size, d_module, d_k);
+                                             party, encoder, evaluator, scale, d_k);
         // [r_aV]_A
         LongCiphertext raV_sec_a = cal_raI_A(input, WV, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a,
-                                             party, encoder, evaluator, scale, batch_size, d_module, d_k);
+                                             party, encoder, evaluator, scale, d_k);
         double rb1 = dist(gen), div_rb1 = 1 / rb1, rb1_square = rb1 * rb1;
         Plaintext div_rb1_plain_;
         encoder->encode(div_rb1, scale, div_rb1_plain_);
@@ -291,7 +291,6 @@ Multi_Head_Attention::~Multi_Head_Attention() {
 
 LongCiphertext Multi_Head_Attention::forward(const std::vector<double> &input) {
     std::vector<double> output(input.size());
-    size_t batch_size = input.size() / d_module;
     size_t d_k = d_module / n_heads;
     size_t h, i, j;
     for (h = 0; h < n_heads; h++) {

@@ -18,7 +18,7 @@ int main(int argc, const char **argv) {
     CKKSKey *party = new CKKSKey(party_, context);
 
     IOPack *io_pack = new IOPack(party_);
-    printf("batch size:       %ld\nd_module:         %ld\nnumber of heads:  %ld\n", batch_size, d_module, n_heads);
+    printf("batch size:       %d\nd_module:         %d\nnumber of heads:  %d\n", batch_size, d_module, n_heads);
     std::vector<double> input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);
