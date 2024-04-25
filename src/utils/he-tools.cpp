@@ -1,8 +1,6 @@
 #include "he-tools.h"
 
-CKKSKey::CKKSKey(int party_, SEALContext *context_, size_t slot_count_) : party(party_),
-                                                                          context(context_),
-                                                                          slot_count(slot_count_) {
+CKKSKey::CKKSKey(int party_, SEALContext *context_) : party(party_), context(context_) {
     assert(party == ALICE || party == BOB);
     keygen = new KeyGenerator(*context);
     keygen->create_public_key(public_key);
@@ -16,34 +14,33 @@ CKKSKey::~CKKSKey() {
     delete decryptor;
 }
 
-LongPlaintext::LongPlaintext(Plaintext pt, size_t slot_count_) : slot_count(slot_count_) {
+LongPlaintext::LongPlaintext(Plaintext pt) {
     len = 1;
     plain_data.push_back(pt);
 }
 
-LongPlaintext::LongPlaintext(
-    std::vector<double> data,
-    double scale, size_t slot_count_, CKKSEncoder *encoder) : slot_count(slot_count_) {
+LongPlaintext::LongPlaintext(std::vector<double> data, CKKSEncoder *encoder) {
     len = data.size();
-    size_t count = len / slot_count;
-    if (len % slot_count) {
+    size_t slot = slot_count;
+    size_t count = len / slot;
+    if (len % slot) {
         count++;
     }
     size_t i, j;
-    if (slot_count >= len) {
+    if (slot >= len) {
         Plaintext pt;
         encoder->encode(data, scale, pt);
         plain_data.push_back(pt);
     } else {
         std::vector<double>::iterator curPtr = data.begin(), endPtr = data.end(), end;
         while (curPtr < endPtr) {
-            end = endPtr - curPtr > slot_count ? slot_count + curPtr : endPtr;
-            slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
+            end = endPtr - curPtr > slot ? slot + curPtr : endPtr;
+            slot = endPtr - curPtr > slot ? slot : endPtr - curPtr;
             std::vector<double> temp(curPtr, end);
             Plaintext pt;
             encoder->encode(temp, scale, pt);
             plain_data.push_back(pt);
-            curPtr += slot_count;
+            curPtr += slot;
         }
     }
 }
@@ -80,7 +77,7 @@ LongCiphertext::LongCiphertext(LongPlaintext lpt, CKKSKey *party) {
 }
 
 LongPlaintext LongCiphertext::decrypt(CKKSKey *party) {
-    LongPlaintext lpt(party->slot_count);
+    LongPlaintext lpt;
     lpt.len = len;
     for (Ciphertext ct : cipher_data) {
         Plaintext pt;

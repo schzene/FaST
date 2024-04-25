@@ -1,6 +1,6 @@
 #ifndef FAST_LAYER_NROM1_H__
 #define FAST_LAYER_NROM1_H__
-#include <utils.h>
+#include <module.h>
 class LayerNorm1 {
 public:
     LayerNorm1();

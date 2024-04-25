@@ -1,5 +1,5 @@
 #ifndef FAST_HE_TOOLS_H__
-#define FAST_HE_TOOLS_H__
+#define FAST_HE_TOOLS_cdH__
 #include <cassert>
 #include <sstream>
 #include <string>
@@ -11,11 +11,16 @@
 
 using namespace seal;
 
+const size_t poly_modulus_degree = 8192;
+const size_t slot_count = poly_modulus_degree / 2;
+const double scale = 1ul << 40;
+
 class length_error : public std::exception {
-    const char* message;
+    const char *message;
+
 public:
-    length_error(const char* msg) : message(msg) {}
-    const char* what() const throw() override {
+    length_error(const char *msg) : message(msg) {}
+    const char *what() const throw() override {
         return message;
     }
 };
@@ -23,13 +28,12 @@ public:
 class CKKSKey {
 public:
     int party;
-    size_t slot_count;
     SEALContext *context;
     KeyGenerator *keygen;
     Encryptor *encryptor;
     Decryptor *decryptor;
     PublicKey public_key;
-    CKKSKey(int party_, SEALContext *context_, size_t slot_count_);
+    CKKSKey(int party_, SEALContext *context_);
     ~CKKSKey();
 };
 
@@ -37,10 +41,9 @@ class LongPlaintext {
 public:
     std::vector<Plaintext> plain_data;
     size_t len;
-    size_t slot_count;
-    LongPlaintext(size_t slot_count_) : slot_count(slot_count_) {}
-    LongPlaintext(Plaintext pt, size_t slot_count_);
-    LongPlaintext(std::vector<double> data, double scale, size_t slot_count_, CKKSEncoder *encoder);
+    LongPlaintext() {}
+    LongPlaintext(Plaintext pt);
+    LongPlaintext(std::vector<double> data, CKKSEncoder *encoder);
     std::vector<double> decode(CKKSEncoder *encoder);
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
@@ -60,8 +63,8 @@ public:
     LongPlaintext decrypt(CKKSKey *party);
     void add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
     LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator);
-    void add_inplace(LongCiphertext &lct, Evaluator* evaluator);
-    LongCiphertext add(LongCiphertext &lct, Evaluator* evaluator);
+    void add_inplace(LongCiphertext &lct, Evaluator *evaluator);
+    LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator);
     void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
     LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator);
     static void send(IOPack *io_pack, LongCiphertext *lct);

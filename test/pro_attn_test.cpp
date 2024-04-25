@@ -1,8 +1,6 @@
 #include <protocols.h>
 
 int main(int argc, const char **argv) {
-    size_t poly_modulus_degree = 8192;
-    size_t slot_count = poly_modulus_degree / 2;
     EncryptionParameters parms(scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
     parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
@@ -17,22 +15,22 @@ int main(int argc, const char **argv) {
         std::cout << "Party: BOB"
                   << "\n";
     }
-    CKKSKey *party = new CKKSKey(party_, context, slot_count);
+    CKKSKey *party = new CKKSKey(party_, context);
 
     IOPack *io_pack = new IOPack(party_);
-    size_t inp_seq = 128, d_module = 768, d_k = 768, n_head = 1;
-    printf("input seq:        %ld\nd_module:         %ld\nd_k:              %ld\nnumber of heads:  %ld\n", inp_seq, d_module, d_k, n_head);
-    std::vector<double> input(inp_seq * d_module);
-    random_mat(input);
+    printf("batch size:       %ld\nd_module:         %ld\nnumber of heads:  %ld\n", batch_size, d_module, n_heads);
+    std::vector<double> input(batch_size * d_module);
+    random_mat(input, 0, 0.01);
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);
-    Multi_Head_Attention *attn = new Multi_Head_Attention(party, context, io_pack, n_head, d_module, d_k);
+    Multi_Head_Attention *attn = new Multi_Head_Attention(party, context, io_pack);
 
     LongCiphertext result;
     INIT_TIMER;
     START_TIMER;
-    result = attn->forward(input);
-    STOP_TIMER("attention");
-    auto comm = io_pack->get_comm();
+    attn->forward(input);
+    STOP_TIMER("Multi-Head Attention");
+    size_t comm = io_pack->get_comm();
+    size_t rounds = io_pack->get_rounds() / n_heads;
     if (comm < 1024) {
         printf("data size of communication: %ld B\n", comm);
     } else if (comm < 1024 * 1024) {
@@ -42,7 +40,7 @@ int main(int argc, const char **argv) {
     } else {
         printf("data size of communication: %.2lf MB\n", comm / (1024. * 1024. * 1024.));
     }
-    std::cout << "rounds of communication: " << io_pack->get_rounds() << "\n";
+    std::cout << "rounds of communication: " << rounds << "\n";
 
     delete attn;
     delete io_pack;

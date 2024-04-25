@@ -1,6 +1,6 @@
 #ifndef FAST_FFN_H__
 #define FAST_FFN_H__
-#include <utils.h>
+#include <module.h>
 class FFN {
 public:
     FFN();
