@@ -51,10 +51,10 @@ std::vector<double> zero_sum(size_t row, size_t column) {
 }
 
 void load_mat(std::vector<double> &mat, const char *path) {
-    random_mat(mat);
+    random_mat(mat, -.01, .01);
 }
 
-void norm(std::vector<double> &A, size_t row, size_t column) {
+void normalization(std::vector<double> &A, size_t row, size_t column) {
     size_t i, j;
     for (i = 0; i < row; i++) {
         auto max = A[i * column];
@@ -67,6 +67,31 @@ void norm(std::vector<double> &A, size_t row, size_t column) {
             A[i * column + j] -= max;
         }
     }
+}
+
+std::vector<double> mean(const std::vector<double> &input, size_t row, size_t column) {
+    std::vector<double> result(row);
+    size_t i, j;
+    for (i = 0; i < row; i++) {
+        for (j = 0; j < column; j++) {
+            result[i] += input[i * column + j];
+        }
+        result[i] /= column;
+    }
+    return result;
+}
+
+std::vector<double> standard_deviation(const std::vector<double> &input, const std::vector<double> means, size_t row, size_t column) {
+    std::vector<double> result(row);
+    size_t i, j;
+    for (i = 0; i < row; i++) {
+        for (j = 0; j < column; j++) {
+            result[i] += (input[i * column + j] - means[i]) * (input[i * column + j] - means[i]);
+        }
+        result[i] /= column;
+        result[i] = sqrt(result[i]);
+    }
+    return result;
 }
 
 void print_mat(const std::vector<double> &A, size_t row, size_t column) {

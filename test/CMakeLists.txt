@@ -15,3 +15,5 @@ macro(add_pro_test _name)
 endmacro()
 
 add_pro_test(attn)
+add_pro_test(layer-norm1)
+add_pro_test(transformer)

@@ -1,16 +1,16 @@
 #include "transformer.h"
-Transformer::Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack, size_t d_k) {
+Transformer::Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack) {
     this->multi_head_attn = new Multi_Head_Attention(party, encoder, evaluator, io_pack);
-    this->ln1 = new LayerNorm1();
-    this->ffn = new FFN();
-    this->ln2 = new LayerNorm2();
+    this->ln1 = new LayerNorm1(party, encoder, evaluator, io_pack);
+    // this->ffn = new FFN();
+    // this->ln2 = new LayerNorm2();
 }
 
 Transformer::~Transformer() {
     delete multi_head_attn;
     delete ln1;
-    delete ffn;
-    delete ln2;
+    // delete ffn;
+    // delete ln2;
 }
 
 void Transformer::forward(const std::vector<double> &input) {

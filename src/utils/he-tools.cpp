@@ -14,7 +14,7 @@ CKKSKey::~CKKSKey() {
     delete decryptor;
 }
 
-LongPlaintext::LongPlaintext(Plaintext pt) {
+LongPlaintext::LongPlaintext(const Plaintext &pt) {
     len = 1;
     plain_data.push_back(pt);
 }
@@ -52,7 +52,7 @@ LongPlaintext::LongPlaintext(std::vector<double> data, CKKSEncoder *encoder) {
     }
 }
 
-std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) {
+std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) const {
     std::vector<double> data(len);
     size_t size = plain_data.size();
     for (size_t i = 0; i < size; i++) {
@@ -69,19 +69,21 @@ std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) {
     return data;
 }
 
-LongCiphertext::LongCiphertext(Ciphertext ct) {
+LongCiphertext::LongCiphertext(const Ciphertext &ct) {
     len = 1;
     cipher_data.push_back(ct);
 }
 
-LongCiphertext::LongCiphertext(double data, CKKSKey *party, CKKSEncoder* encoder) {
+LongCiphertext::LongCiphertext(double data, CKKSKey *party, CKKSEncoder *encoder) {
     len = 1;
-    Plaintext pt; encoder->encode(data, scale, pt);
-    Ciphertext ct; party->encryptor->encrypt(pt, ct);
+    Plaintext pt;
+    encoder->encode(data, scale, pt);
+    Ciphertext ct;
+    party->encryptor->encrypt(pt, ct);
     cipher_data.push_back(ct);
 }
 
-LongCiphertext::LongCiphertext(LongPlaintext lpt, CKKSKey *party) {
+LongCiphertext::LongCiphertext(const LongPlaintext &lpt, CKKSKey *party) {
     len = lpt.len;
     for (Plaintext pt : lpt.plain_data) {
         Ciphertext ct;
@@ -90,7 +92,7 @@ LongCiphertext::LongCiphertext(LongPlaintext lpt, CKKSKey *party) {
     }
 }
 
-LongPlaintext LongCiphertext::decrypt(CKKSKey *party) {
+LongPlaintext LongCiphertext::decrypt(CKKSKey *party) const {
     LongPlaintext lpt;
     lpt.len = len;
     for (Ciphertext ct : cipher_data) {
@@ -122,7 +124,7 @@ void LongCiphertext::add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator)
     }
 }
 
-LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt, Evaluator *evaluator) {
+LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt, Evaluator *evaluator) const {
     LongCiphertext lct;
     lct.len = 0;
     if (len == 1) {
@@ -173,7 +175,7 @@ void LongCiphertext::add_inplace(LongCiphertext &lct, Evaluator *evaluator) {
     }
 }
 
-LongCiphertext LongCiphertext::add(LongCiphertext &lct, Evaluator *evaluator) {
+LongCiphertext LongCiphertext::add(LongCiphertext &lct, Evaluator *evaluator) const {
     LongCiphertext lcct;
     lcct.len = 0;
     if (len == 1) {
@@ -226,7 +228,7 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evalu
     this->rescale(scale);
 }
 
-LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) {
+LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) const {
     LongCiphertext lct;
     lct.len = 0;
     if (len == 1) {

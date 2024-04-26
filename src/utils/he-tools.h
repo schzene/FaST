@@ -42,10 +42,10 @@ public:
     std::vector<Plaintext> plain_data;
     size_t len;
     LongPlaintext() {}
-    LongPlaintext(Plaintext pt);
+    LongPlaintext(const Plaintext &pt);
     LongPlaintext(double data, CKKSEncoder *encoder);
     LongPlaintext(std::vector<double> data, CKKSEncoder *encoder);
-    std::vector<double> decode(CKKSEncoder *encoder);
+    std::vector<double> decode(CKKSEncoder *encoder) const;
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < plain_data.size(); i++) {
@@ -59,16 +59,16 @@ public:
     std::vector<Ciphertext> cipher_data;
     size_t len;
     LongCiphertext() {}
-    LongCiphertext(Ciphertext ct);
-    LongCiphertext(double data, CKKSKey *party, CKKSEncoder* encoder);
-    LongCiphertext(LongPlaintext lpt, CKKSKey *party);
-    LongPlaintext decrypt(CKKSKey *party);
+    LongCiphertext(const Ciphertext &ct);
+    LongCiphertext(double data, CKKSKey *party, CKKSEncoder *encoder);
+    LongCiphertext(const LongPlaintext &lpt, CKKSKey *party);
+    LongPlaintext decrypt(CKKSKey *party) const;
     void add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
     void add_inplace(LongCiphertext &lct, Evaluator *evaluator);
-    LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator);
+    LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator) const;
     void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
     static void send(IOPack *io_pack, LongCiphertext *lct);
     static void recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context);
 
@@ -77,7 +77,7 @@ public:
             evaluator->rescale_to_next_inplace(cipher_data[i]);
         }
     }
-    
+
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->mod_switch_to_inplace(cipher_data[i], parms_id);

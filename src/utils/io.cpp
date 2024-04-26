@@ -133,13 +133,13 @@ IOPack::~IOPack() {
     delete io_rev;
 }
 
-void IOPack::send_data(const void* data, int len) {
+void IOPack::send_data(const void *data, int len) {
     io->send_data(data, len);
     io->last_call = LastCall::Send;
     io->last_call = LastCall::Send;
 }
 
-void IOPack::recv_data(void* data, int len) {
+void IOPack::recv_data(void *data, int len) {
     io_rev->recv_data(data, len);
     io->last_call = LastCall::Recv;
     io->last_call = LastCall::Recv;

@@ -71,7 +71,7 @@ public:
         // send H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a} to bob, where I = Q, K, V
 
         /*
-            Bob: revice H1, and possess: x_b, W_b
+            bob: revice H1, and possess: x_b, W_b
             1. compute: rxw_a + rx_a * w_b + rW_a * x_b + [r_a]_a * xw_b = [r_aI]_a , where I stands for  Q,K,V
             2. genereat random num r_b, compute [r_aQ/r_b]_a, [r_aK/r_b]_a, [(r_b)^2]_b
         */
@@ -111,10 +111,10 @@ public:
         div_rb1_plain.mod_switch_to_inplace(raQ_sec_a.parms_id(), evaluator);
         raQ_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
         raK_sec_a.multiply_plain_inplace(div_rb1_plain, evaluator);
-        // send H2 = {raQ_sec_a, raK_sec_a, rb1_square_secret_b} to Alice
+        // send H2 = {raQ_sec_a, raK_sec_a, rb1_square_secret_b} to alice
 
         /*
-            Alice receive H2, and get Q/rs1, K/rs1, [rb1]_s
+            alice receive H2, and get Q/rs1, K/rs1, [rb1]_s
         */
         LongPlaintext raQ_div_rb1_plain = raQ_sec_a.decrypt(alice);
         LongPlaintext raK_div_rb1_plain = raK_sec_a.decrypt(alice);
@@ -134,7 +134,7 @@ public:
             negZa[i] = -negZa[i];
             eZa[i] = exp(eZa[i]);
         }
-        norm(temp_z, batch_size, batch_size);
+        normalization(temp_z, batch_size, batch_size);
         LongPlaintext z_plain(temp_z, encoder);
         auto Zb_secret_b = rb1_square_secret_b.multiply_plain(z_plain, evaluator);
 #ifdef TEST1
@@ -148,10 +148,10 @@ public:
 
         LongPlaintext eZa_plain(eZa, encoder);
         LongCiphertext eZa_secret_a(eZa_plain, alice);
-        // send H3 = {Zb_secret_b, eZa_secret_a} to Bob
+        // send H3 = {Zb_secret_b, eZa_secret_a} to bob
 
         /*
-            Bob receive H3, and get Zb, [exp(Zc)]_a
+            bob receive H3, and get Zb, [exp(Zc)]_a
         */
         LongPlaintext eZb_plain = Zb_secret_b.decrypt(bob);
         std::vector<double> eZb = eZb_plain.decode(encoder);
@@ -203,7 +203,7 @@ public:
         // send H4 = {eZa_secret_a, eZb, raV_sec_a} to alice
 
         /*
-            Alice receive H4, and get rs2 * exp(Z) + O, Db * exp(Zs), Rb * V,
+            alice receive H4, and get rs2 * exp(Z) + O, Db * exp(Zs), Rb * V,
         */
         LongPlaintext rs2_expZ_plain = eZa_secret_a.decrypt(alice);
         auto rs2_expZ = rs2_expZ_plain.decode(encoder);
@@ -240,7 +240,7 @@ public:
         auto V = matmul(input, WV, batch_size, d_module, d_k);
         // print_mat(K, batch_size, d_k);
         auto QK = matmul(Q, K, batch_size, d_k, batch_size, true);
-        norm(QK, batch_size, batch_size);
+        normalization(QK, batch_size, batch_size);
         for (i = 0; i < QK.size(); i++) {
             QK[i] /= sqrt_d_k;
             QK[i] = exp(QK[i]);
