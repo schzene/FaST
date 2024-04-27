@@ -126,7 +126,7 @@ std::vector<double> Attention::forward(const std::vector<double> &input) const {
 #endif
         auto output = matmul(eScore_b, Rb_V, batch_size, batch_size, d_k);
 #ifdef LOG
-        printf("Secure Attention %ld done.\n", head);
+        printf("Secure Attention %d done.\n", head);
 #endif
         return output;
     } else {
@@ -245,21 +245,22 @@ std::vector<double> Attention::forward(const std::vector<double> &input) const {
         send_mat(io_pack, &eScore_b);
         LongCiphertext::send(io_pack, &raV_sec_a);
 #ifdef LOG
-        printf("Secure Attention %ld done.\n", head);
+        printf("Secure Attention %d done.\n", head);
 #endif
         return output;
     }
 }
 
-Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack) {
+Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
+                                           IOPack *io_pack) : Protocol(party, encoder, evaluator, io_pack) {
     attns = new Attention *[n_heads];
-    for (size_t i = 0; i < n_heads; i++) {
+    for (int i = 0; i < n_heads; i++) {
         attns[i] = new Attention(party, encoder, evaluator, io_pack, i);
     }
 }
 
 Multi_Head_Attention::~Multi_Head_Attention() {
-    for (size_t i = 0; i < n_heads; i++) {
+    for (int i = 0; i < n_heads; i++) {
         delete attns[i];
     }
     delete[] attns;
@@ -268,8 +269,8 @@ Multi_Head_Attention::~Multi_Head_Attention() {
 LongCiphertext Multi_Head_Attention::forward(const std::vector<double> &input) const {
     std::vector<double> output(input.size());
     size_t d_k = d_module / n_heads;
-    size_t h, i, j;
-    for (h = 0; h < n_heads; h++) {
+    size_t i, j;
+    for (int h = 0; h < n_heads; h++) {
         auto output_h = attns[h]->forward(input);
         for (i = 0; i < batch_size; i++) {
             for (j = 0; j < d_k; j++) {
@@ -278,14 +279,14 @@ LongCiphertext Multi_Head_Attention::forward(const std::vector<double> &input) c
         }
     }
     LongCiphertext output_secret;
-    if (attns[0]->party->party == ALICE) {
-        LongCiphertext::recv(attns[0]->io_pack, &output_secret, attns[0]->party->context);
+    if (party->party == ALICE) {
+        LongCiphertext::recv(io_pack, &output_secret, party->context);
     } else {
         LongCiphertext output_secret_b(
-            LongPlaintext(output, attns[0]->encoder),
-            attns[0]->party);
-        LongCiphertext::send(attns[0]->io_pack, &output_secret_b);
+            LongPlaintext(output, encoder),
+            party);
+        LongCiphertext::send(io_pack, &output_secret_b);
     }
-    attns[0]->io_pack->io->num_rounds /= 12;
+    io_pack->io->num_rounds /= 12;
     return output_secret;
 }

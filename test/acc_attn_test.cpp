@@ -6,26 +6,20 @@ class SecureAttention {
     CKKSKey *bob;
     CKKSEncoder *encoder;
     Evaluator *evaluator;
-    std::vector<double> input;
     size_t d_k;
 
 public:
-    SecureAttention(CKKSKey *alice_, CKKSKey *bob_, std::vector<double> input_,
-                    size_t d_k_) : alice(alice_),
-                                   bob(bob_),
-                                   input(input_),
-                                   d_k(d_k_) {
-        encoder = new CKKSEncoder(*(alice->context));
-        evaluator = new Evaluator(*(alice->context));
-    }
+    SecureAttention(CKKSKey *alice_, CKKSKey *bob_,
+                    CKKSEncoder *encoder_, Evaluator *evaluator_) : alice(alice_),
+                                                                    bob(bob_),
+                                                                    encoder(encoder_),
+                                                                    evaluator(evaluator_) {}
 
-    ~SecureAttention() {
-        delete encoder;
-        delete evaluator;
-    }
+    ~SecureAttention() {}
 
-    void forward() {
+    void forward(const std::vector<double> &input) {
         size_t i, j;
+        int d_k = d_module / n_heads;
         std::vector<double> ra_WQa(d_module * d_k),
             ra_WKa(d_module * d_k),
             ra_WVa(d_module * d_k),
@@ -265,7 +259,7 @@ public:
                 Z[i] = -Z[i];
             }
         }
-        std::cout << "errer:"
+        std::cout << "error:"
                   << "\n";
         print_mat(Z, batch_size, d_k);
 #endif
@@ -285,8 +279,8 @@ int main() {
     CKKSKey *bob = new CKKSKey(2, context);
     std::vector<double> input(batch_size * d_module);
     random_mat(input, 0, 0.01);
-    SecureAttention *sattn = new SecureAttention(alice, bob, input, d_k);
-    sattn->forward();
+    SecureAttention *sattn = new SecureAttention(alice, bob, encoder, evaluator);
+    sattn->forward(input);
 
     /*std::vector<double> input1(8193);
     std::vector<double> input2(8193);

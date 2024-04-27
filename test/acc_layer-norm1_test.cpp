@@ -105,7 +105,7 @@ public:
                 attn[i * d_module + j] -= ln[i * d_module + j];
             }
         }
-        std::cout << "errer:"
+        std::cout << "error:"
                   << "\n";
         print_mat(attn, batch_size, d_module);
 #endif

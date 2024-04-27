@@ -51,11 +51,17 @@ std::vector<double> zero_sum(size_t row, size_t column) {
 }
 
 void load_mat(std::vector<double> &mat, const char *path) {
-    random_mat(mat, -.01, .01);
+    random_mat(mat);
 }
 
 void normalization(std::vector<double> &A, size_t row, size_t column) {
     size_t i, j;
+    double max_value = 1ul<<20;
+    for (i = 0; i < row * column; i++) {
+        if (std::isnan(A[i]) || A[i] > max_value || -A[i] > max_value) {
+            A[i] = 0;
+        }
+    }
     for (i = 0; i < row; i++) {
         auto max = A[i * column];
         for (j = 1; j < column; j++) {
