@@ -19,3 +19,6 @@ add_pro_test(attn)
 add_pro_test(layer-norm1)
 add_pro_test(ffn)
 add_pro_test(transformer)
+
+add_executable(RFCP_matmul_test "RFCP_matmul_test.cpp")
+target_link_libraries(RFCP_matmul_test PUBLIC FaST)

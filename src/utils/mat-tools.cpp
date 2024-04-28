@@ -7,18 +7,27 @@ std::vector<double> matmul(
     size_t i, j, k;
     if (!trans) {
         for (i = 0; i < dim1; i++) {
-            for (j = 0; j < dim3; j++) {
-                for (k = 0; k < dim2; k++) {
-                    result[i * dim3 + j] += mat1[i * dim2 + k] * mat2[k * dim3 + j];
+            const size_t base_idx1 = i * dim2;
+            const size_t base_idx2 = i * dim3;
+            for (k = 0; k < dim2; k++) {
+                const size_t base_idx3 = k * dim3;
+                const double tmp = mat1[base_idx1 + k];
+                for (j = 0; j < dim3; j++) {
+                    result[base_idx2 + j] += tmp * mat2[base_idx3 + j];
                 }
             }
         }
     } else {
         for (i = 0; i < dim1; i++) {
+            const size_t base_idx1 = i * dim2;
+            const size_t base_idx2 = i * dim3;
             for (j = 0; j < dim3; j++) {
+                const size_t base_idx3 = j * dim3;
+                double sum = 0.;
                 for (k = 0; k < dim2; k++) {
-                    result[i * dim3 + j] += mat1[i * dim2 + k] * mat2[j * dim3 + k];
+                    sum += mat1[base_idx1 + k] * mat2[base_idx3 + k];
                 }
+                result[base_idx2 + j] = sum;
             }
         }
     }
@@ -56,7 +65,7 @@ void load_mat(std::vector<double> &mat, const char *path) {
 
 void normalization(std::vector<double> &A, size_t row, size_t column) {
     size_t i, j;
-    double max_value = 1ul<<20;
+    double max_value = 1ul << 20;
     for (i = 0; i < row * column; i++) {
         if (std::isnan(A[i]) || A[i] > max_value || -A[i] > max_value) {
             A[i] = 0;

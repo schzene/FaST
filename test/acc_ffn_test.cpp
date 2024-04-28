@@ -81,7 +81,6 @@ int main() {
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
 
-    size_t d_k = d_module / n_heads;
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
     std::vector<double> input(batch_size * d_module);
