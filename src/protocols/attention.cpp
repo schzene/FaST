@@ -10,6 +10,10 @@ std::vector<double> Attention::forward(const std::vector<double> &input) const {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dist(-1, 1);
     if (party->party == ALICE) {
+#ifdef LOG
+        INIT_TIMER
+        START_TIMER
+#endif
         // alice: possess: x_a, W_a
         double ra = dist(gen);
         std::vector<double> ra_xa(batch_size * d_module);
@@ -126,10 +130,17 @@ std::vector<double> Attention::forward(const std::vector<double> &input) const {
 #endif
         auto output = matmul(eScore_b, Rb_V, batch_size, batch_size, d_k);
 #ifdef LOG
-        printf("Secure Attention %d done.\n", head);
+        char* buf = new char[13];
+        sprintf(buf, "Attention-%-2d", head);
+        STOP_TIMER(buf)
+        delete buf;
 #endif
         return output;
     } else {
+#ifdef LOG
+        INIT_TIMER
+        START_TIMER
+#endif
         /*
         bob: revice H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a}, and possess: x_b, W_b
         1. compute: rxw_a + rx_a * w_b + rW_a * x_b + [r_a]_a * xw_b = [r_aI]_a , where I stands for  Q,K,V
@@ -245,7 +256,10 @@ std::vector<double> Attention::forward(const std::vector<double> &input) const {
         send_mat(io_pack, &eScore_b);
         LongCiphertext::send(io_pack, &raV_sec_a);
 #ifdef LOG
-        printf("Secure Attention %d done.\n", head);
+        char* buf = new char[13];
+        sprintf(buf, "Attention-%-2d", head);
+        STOP_TIMER(buf)
+        delete buf;
 #endif
         return output;
     }

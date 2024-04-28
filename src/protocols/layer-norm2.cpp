@@ -3,11 +3,21 @@
 void LayerNorm2::forward() {
     if (party->party == ALICE) {
 #ifdef LOG
-        std::cout << "Secure LayerNorm2 done.\n";
+        INIT_TIMER
+        START_TIMER
+#endif
+
+#ifdef LOG
+        STOP_TIMER("Layer Norm2 ")
 #endif
     } else {
 #ifdef LOG
-        std::cout << "Secure LayerNorm2 done.\n";
+        INIT_TIMER
+        START_TIMER
+#endif
+
+#ifdef LOG
+        STOP_TIMER("Layer Norm2 ")
 #endif
     }
 }
