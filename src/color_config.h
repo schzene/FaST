@@ -1,10 +1,6 @@
-#ifndef FASTST_CONFIG_H__
-#define FASTST_CONFIG_H__
-//  Party config
-#define ALICE 1
-#define BOB 2
-#define ALICE_SEND_PORT 23456
-#define BOB_SEND_PORT 34926
+
+#ifndef FAST_COLOR_H__
+#define FAST_COLOR_H__
 
 #define RESET "\033[0m"
 #define BLACK "\033[30m"  /* Black */
@@ -23,4 +19,5 @@
 #define DEBUG (std::cout << CYAN)
 #define END (std::endl)
 #define REND "\033[0m" << std::endl
-#endif // CONFIG
+
+#endif

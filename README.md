@@ -8,16 +8,16 @@ Build FaST is simple, just run:
 
 ```bash
 mkdir build && cd build
-cmake ../
-make
+cmake -DCMAKE_INSTALL_PREFIX=./install ../ -FaST_TEST=ON
+cmake --build . --target install --parallel -j 40
 ```
 
 if you want to turn off the test sample, run:
 
 ```bash
 mkdir build && cd build
-cmake ../ -DFaST_TEST=OFF
-make
+cmake ../ -DFaST_TEST=OFFcmake -DCMAKE_INSTALL_PREFIX=./install ../make
+cmake --build . --target install --parallel -j 40
 ```
 
 # Acknowledgments

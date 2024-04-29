@@ -1,8 +1,6 @@
 #include "he-tools.h"
 
-CKKSKey::CKKSKey(int party_, SEALContext *context_, size_t slot_count_) : party(party_),
-                                                                          context(context_),
-                                                                          slot_count(slot_count_) {
+CKKSKey::CKKSKey(int party_, SEALContext *context_) : party(party_), context(context_) {
     assert(party == ALICE || party == BOB);
     keygen = new KeyGenerator(*context);
     keygen->create_public_key(public_key);
@@ -16,39 +14,45 @@ CKKSKey::~CKKSKey() {
     delete decryptor;
 }
 
-LongPlaintext::LongPlaintext(Plaintext pt, size_t slot_count_) : slot_count(slot_count_) {
+LongPlaintext::LongPlaintext(const Plaintext &pt) {
     len = 1;
     plain_data.push_back(pt);
 }
 
-LongPlaintext::LongPlaintext(
-    std::vector<double> data,
-    double scale, size_t slot_count_, CKKSEncoder *encoder) : slot_count(slot_count_) {
+LongPlaintext::LongPlaintext(double data, CKKSEncoder *encoder) {
+    len = 1;
+    Plaintext pt;
+    encoder->encode(data, scale, pt);
+    plain_data.push_back(pt);
+}
+
+LongPlaintext::LongPlaintext(std::vector<double> data, CKKSEncoder *encoder) {
     len = data.size();
-    size_t count = len / slot_count;
-    if (len % slot_count) {
+    size_t slot = slot_count;
+    size_t count = len / slot;
+    if (len % slot) {
         count++;
     }
     size_t i, j;
-    if (slot_count >= len) {
+    if (slot >= len) {
         Plaintext pt;
         encoder->encode(data, scale, pt);
         plain_data.push_back(pt);
     } else {
         std::vector<double>::iterator curPtr = data.begin(), endPtr = data.end(), end;
         while (curPtr < endPtr) {
-            end = endPtr - curPtr > slot_count ? slot_count + curPtr : endPtr;
-            slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
+            end = endPtr - curPtr > slot ? slot + curPtr : endPtr;
+            slot = endPtr - curPtr > slot ? slot : endPtr - curPtr;
             std::vector<double> temp(curPtr, end);
             Plaintext pt;
             encoder->encode(temp, scale, pt);
             plain_data.push_back(pt);
-            curPtr += slot_count;
+            curPtr += slot;
         }
     }
 }
 
-std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) {
+std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) const {
     std::vector<double> data(len);
     size_t size = plain_data.size();
     for (size_t i = 0; i < size; i++) {
@@ -65,12 +69,21 @@ std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) {
     return data;
 }
 
-LongCiphertext::LongCiphertext(Ciphertext ct) {
+LongCiphertext::LongCiphertext(const Ciphertext &ct) {
     len = 1;
     cipher_data.push_back(ct);
 }
 
-LongCiphertext::LongCiphertext(LongPlaintext lpt, CKKSKey *party) {
+LongCiphertext::LongCiphertext(double data, CKKSKey *party, CKKSEncoder *encoder) {
+    len = 1;
+    Plaintext pt;
+    encoder->encode(data, scale, pt);
+    Ciphertext ct;
+    party->encryptor->encrypt(pt, ct);
+    cipher_data.push_back(ct);
+}
+
+LongCiphertext::LongCiphertext(const LongPlaintext &lpt, CKKSKey *party) {
     len = lpt.len;
     for (Plaintext pt : lpt.plain_data) {
         Ciphertext ct;
@@ -79,8 +92,8 @@ LongCiphertext::LongCiphertext(LongPlaintext lpt, CKKSKey *party) {
     }
 }
 
-LongPlaintext LongCiphertext::decrypt(CKKSKey *party) {
-    LongPlaintext lpt(party->slot_count);
+LongPlaintext LongCiphertext::decrypt(CKKSKey *party) const {
+    LongPlaintext lpt;
     lpt.len = len;
     for (Ciphertext ct : cipher_data) {
         Plaintext pt;
@@ -111,7 +124,7 @@ void LongCiphertext::add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator)
     }
 }
 
-LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt, Evaluator *evaluator) {
+LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt, Evaluator *evaluator) const {
     LongCiphertext lct;
     lct.len = 0;
     if (len == 1) {
@@ -162,7 +175,7 @@ void LongCiphertext::add_inplace(LongCiphertext &lct, Evaluator *evaluator) {
     }
 }
 
-LongCiphertext LongCiphertext::add(LongCiphertext &lct, Evaluator *evaluator) {
+LongCiphertext LongCiphertext::add(LongCiphertext &lct, Evaluator *evaluator) const {
     LongCiphertext lcct;
     lcct.len = 0;
     if (len == 1) {
@@ -211,9 +224,11 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evalu
     } else {
         throw length_error("Length of LongCiphertext and LongPlaintext mismatch");
     }
+    this->rescale_to_next_inplace(evaluator);
+    this->rescale(scale);
 }
 
-LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) {
+LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) const {
     LongCiphertext lct;
     lct.len = 0;
     if (len == 1) {
@@ -240,6 +255,8 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
     } else {
         throw length_error("Length of LongCiphertext and LongPlaintext mismatch");
     }
+    lct.rescale_to_next_inplace(evaluator);
+    lct.rescale(scale);
     return lct;
 }
 

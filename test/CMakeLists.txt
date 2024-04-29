@@ -1,17 +1,19 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
-macro(add_toy _name)
-    add_executable(toy_${_name})
-    target_sources(toy_${_name} PRIVATE toy_${_name}.cpp)
-    target_link_libraries(toy_${_name} FaST)
+macro(add_acc_test _name)
+    add_executable(acc_${_name} "acc_${_name}_test.cpp")
+    target_link_libraries(acc_${_name} PUBLIC FaST)
 endmacro()
 
-add_toy(attn)
+add_acc_test(attn)
+add_acc_test(layer-norm1)
 
 
-macro(add_test _name)
-    add_executable(${_name}_test "${_name}_test.cpp")
-    target_link_libraries(${_name}_test PUBLIC FaST)
+macro(add_pro_test _name)
+    add_executable(pro_${_name}_test "pro_${_name}_test.cpp")
+    target_link_libraries(pro_${_name}_test PUBLIC FaST)
 endmacro()
 
-add_test(attn)
+add_pro_test(attn)
+add_pro_test(layer-norm1)
+add_pro_test(transformer)

@@ -4,12 +4,16 @@
 #include <sstream>
 #include <string>
 
-#include <config.h>
+#include <party.h>
 #include <seal/seal.h>
 
 #include "io.h"
 
 using namespace seal;
+
+const size_t poly_modulus_degree = 8192;
+const size_t slot_count = poly_modulus_degree / 2;
+const double scale = 1ul << 40;
 
 class length_error : public std::exception
 {
@@ -27,13 +31,12 @@ class CKKSKey
 {
 public:
     int party;
-    size_t slot_count;
     SEALContext *context;
     KeyGenerator *keygen;
     Encryptor *encryptor;
     Decryptor *decryptor;
     PublicKey public_key;
-    CKKSKey(int party_, SEALContext *context_, size_t slot_count_);
+    CKKSKey(int party_, SEALContext *context_);
     ~CKKSKey();
 };
 
@@ -42,11 +45,11 @@ class LongPlaintext
 public:
     std::vector<Plaintext> plain_data;
     size_t len;
-    size_t slot_count;
-    LongPlaintext(size_t slot_count_) : slot_count(slot_count_) {}
-    LongPlaintext(Plaintext pt, size_t slot_count_);
-    LongPlaintext(std::vector<double> data, double scale, size_t slot_count_, CKKSEncoder *encoder);
-    std::vector<double> decode(CKKSEncoder *encoder);
+    LongPlaintext() {}
+    LongPlaintext(const Plaintext &pt);
+    LongPlaintext(double data, CKKSEncoder *encoder);
+    LongPlaintext(std::vector<double> data, CKKSEncoder *encoder);
+    std::vector<double> decode(CKKSEncoder *encoder) const;
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator)
     {
@@ -63,15 +66,16 @@ public:
     std::vector<Ciphertext> cipher_data;
     size_t len;
     LongCiphertext() {}
-    LongCiphertext(Ciphertext ct);
-    LongCiphertext(LongPlaintext lpt, CKKSKey *party);
-    LongPlaintext decrypt(CKKSKey *party);
+    LongCiphertext(const Ciphertext &ct);
+    LongCiphertext(double data, CKKSKey *party, CKKSEncoder *encoder);
+    LongCiphertext(const LongPlaintext &lpt, CKKSKey *party);
+    LongPlaintext decrypt(CKKSKey *party) const;
     void add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
     void add_inplace(LongCiphertext &lct, Evaluator *evaluator);
-    LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator);
+    LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator) const;
     void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator);
+    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
     static void send(IOPack *io_pack, LongCiphertext *lct);
     static void recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context);
 
@@ -83,7 +87,15 @@ public:
         }
     }
 
-    inline void scale(double scale_)
+    inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator)
+    {
+        for (size_t i = 0; i < cipher_data.size(); i++)
+        {
+            evaluator->mod_switch_to_inplace(cipher_data[i], parms_id);
+        }
+    }
+
+    inline void rescale(double scale_)
     {
         for (size_t i = 0; i < cipher_data.size(); i++)
         {

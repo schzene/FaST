@@ -18,7 +18,7 @@ using std::string;
 typedef __m128i block128;
 typedef __m256i block256;
 
-#include <config.h>
+#include <party.h>
 
 const static int NETWORK_BUFFER_SIZE = 1024 * 16; // Should change depending on the network
 
@@ -135,7 +135,8 @@ public:
         return io->num_rounds;
     }
 
-    inline uint64_t get_comm()
+    inline uint64_t
+    get_comm()
     {
         return io->counter + io_rev->counter;
     }

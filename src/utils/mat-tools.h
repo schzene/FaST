@@ -11,7 +11,9 @@ std::vector<double> matmul(const std::vector<double> &mat1, const std::vector<do
 void random_mat(std::vector<double> &mat, double min = -1., double max = 1.);
 std::vector<double> zero_sum(size_t row, size_t column);
 void load_mat(std::vector<double> &mat, const char *path);
-void norm(std::vector<double> &A, size_t row, size_t column);
+void normalization(std::vector<double> &A, size_t row, size_t column);
+std::vector<double> mean(const std::vector<double> &input, size_t row, size_t column);
+std::vector<double> standard_deviation(const std::vector<double> &input, const std::vector<double> means, size_t row, size_t column);
 void print_mat(const std::vector<double> &A, size_t row, size_t column);
 void print_all_mat(const std::vector<double> &A, size_t row, size_t column);
 
