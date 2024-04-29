@@ -6,6 +6,10 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
     size_t i, j;
 
     if (party->party == ALICE) {
+#ifdef LOG
+        INIT_TIMER
+        START_TIMER
+#endif
         double ha1 = dist(gen), ha2 = dist(gen);
         std::vector<double> ha1_xa(input.size());
         for (i = 0; i < batch_size * d_module; i++) {
@@ -50,10 +54,14 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
         send_mat(io_pack, &tmp1);
         LongCiphertext::send(io_pack, &tmp2_secret_a);
 #ifdef LOG
-        std::cout << "Secure LayerNorm1 done.\n";
+        STOP_TIMER("Layer Norm1 ")
 #endif
         return LongCiphertext();
     } else {
+#ifdef LOG
+        INIT_TIMER
+        START_TIMER
+#endif
         /*
             bob receive H1, and get ha1_xa, ha2_div_hc1_secret_a, ha2_secret_a, attn_ha2
             1. compute attn_ha2 + ha1_xa *  [ha2/ha1]_c + xb*[ha2]_c = [x * ha2]_c
@@ -105,7 +113,7 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
         beta_plain.mod_switch_to_inplace(ln_secret_a.parms_id(), evaluator);
         ln_secret_a.add_plain_inplace(beta_plain, evaluator);
 #ifdef LOG
-        std::cout << "Secure LayerNorm1 done.\n";
+        STOP_TIMER("Layer Norm1 ")
 #endif
         return ln_secret_a;
     }

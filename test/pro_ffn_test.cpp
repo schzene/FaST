@@ -18,29 +18,27 @@ int main(int argc, const char **argv) {
     CKKSKey *party = new CKKSKey(party_, context);
 
     IOPack *io_pack = new IOPack(party_);
-    printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
+    printf("batch size:       %d\nd_module:         %d\nFFN_dim:          %d\n", batch_size, d_module, ffn_dim);
     std::vector<double> input(batch_size * d_module);
-    random_mat(input);
-    LayerNorm1 *ln1 = new LayerNorm1(party, encoder, evaluator, io_pack);
+    random_mat(input, 0, 0.01);
+    FFN *ffn = new FFN(party, encoder, evaluator, io_pack);
 
-    LongCiphertext attn_secret_b;
+    LongCiphertext ln1_secret_a;
     if (party_ == ALICE) {
-        LongCiphertext::recv(io_pack, &attn_secret_b, context);
+        std::vector<double> ln1(batch_size * d_module);
+        random_mat(ln1);
+        LongPlaintext ln1_plain(ln1, encoder);
+        LongCiphertext ln1_s_a(ln1_plain, party);
+        LongCiphertext::send(io_pack, &ln1_s_a);
     } else if (party_ == BOB) {
-        std::vector<double> attn(batch_size * d_module);
-        random_mat(attn);
-        LongPlaintext attn_plain(attn, encoder);
-        LongCiphertext attn_s_b(attn_plain, party);
-        LongCiphertext::send(io_pack, &attn_s_b);
+        LongCiphertext::recv(io_pack, &ln1_secret_a, context);
     }
-    io_pack->io->num_rounds = 0;
-    io_pack->io_rev->num_rounds = 0;
     INIT_TIMER;
     START_TIMER;
-    LongCiphertext result = ln1->forward(attn_secret_b, input);
-    STOP_TIMER("LayerNorm1");
+    ffn->forward(ln1_secret_a);
+    STOP_TIMER("Feed Forward");
     size_t comm = io_pack->get_comm();
-    size_t rounds = io_pack->get_rounds();
+    size_t rounds = io_pack->get_rounds() / n_heads;
     if (comm < 1024) {
         printf("data size of communication: %ld B\n", comm);
     } else if (comm < 1024 * 1024) {
@@ -52,7 +50,7 @@ int main(int argc, const char **argv) {
     }
     std::cout << "rounds of communication: " << rounds << "\n";
 
-    delete ln1;
+    delete ffn;
     delete io_pack;
     delete party;
     delete evaluator;

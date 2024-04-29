@@ -7,7 +7,7 @@ int main(int argc, const char **argv) {
     SEALContext *context = new SEALContext(parms);
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
-    int party_ = argc > 1 ? 1 : 2;
+    int party_ = argc > 1 ? 2: 1;
     if (party_ == ALICE) {
         std::cout << "Party: ALICE"
                   << "\n";
