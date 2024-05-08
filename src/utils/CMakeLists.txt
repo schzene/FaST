@@ -11,7 +11,7 @@ if (NOT SEAL_FOUND)
     endif ()
     execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/build .
             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL/")
-    execute_process(COMMAND ${CMAKE_COMMAND} --build . --target install
+    execute_process(COMMAND ${CMAKE_COMMAND} --build . --target install -j8
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL/")
     find_package(SEAL 4.1.1 EXACT REQUIRED PATHS "${PROJECT_SOURCE_DIR}/build/" NO_DEFAULT_PATH)
 endif()
