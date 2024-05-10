@@ -12,6 +12,5 @@ if(FaST_TEST)
   add_subdirectory(test)
 endif()
 
-
 set(INSTALL_DIR "${CMAKE_INSTALL_PREFIX}")
 set(BUILD_DIR "${PROJECT_SOURCE_DIR}/build")

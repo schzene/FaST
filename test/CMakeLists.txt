@@ -20,8 +20,11 @@ add_pro_test(layer-norm1)
 add_pro_test(ffn)
 add_pro_test(transformer)
 
-add_executable(RFCP_matmul_test "RFCP_matmul_test.cpp")
-target_link_libraries(RFCP_matmul_test PUBLIC FaST)
 
-add_executable(mat_test "mat_test.cpp")
-target_link_libraries(mat_test PUBLIC FaST)
+macro(add_test _name)
+    add_executable(${_name}_test "${_name}_test.cpp")
+    target_link_libraries(${_name}_test PUBLIC FaST)
+endmacro()
+
+add_test(RFCP_matmul)
+add_test(mat)

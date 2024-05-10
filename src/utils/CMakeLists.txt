@@ -22,13 +22,11 @@ add_library(FaST_Utils
     mat-tools.cpp
 )
 
-target_include_directories(FaST_Utils
-    PRIVATE
+target_include_directories(FaST_Utils PRIVATE
     ${PROJECT_SOURCE_DIR}/include/utils
 )
 
-target_link_libraries(FaST_Utils
-    PUBLIC
+target_link_libraries(FaST_Utils PUBLIC
     SEAL::seal
     FaST
 )
