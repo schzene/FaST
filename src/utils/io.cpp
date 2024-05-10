@@ -59,7 +59,7 @@ NetIO::NetIO(const char *address, int port, bool full_buffer, bool quiet) {
     }
     this->FBF_mode = full_buffer;
     if (!quiet)
-        std::cout << "connected\n";
+        cout << "connected\n";
 }
 
 NetIO::~NetIO() {
@@ -118,7 +118,7 @@ void NetIO::recv_data(void *data, int len) {
     }
 }
 
-IOPack::IOPack(int party, std::string address) {
+IOPack::IOPack(int party, string address) {
     if (party == ALICE) {
         this->io = new NetIO(nullptr, ALICE_SEND_PORT, false, true);
         this->io_rev = new NetIO(nullptr, BOB_SEND_PORT);

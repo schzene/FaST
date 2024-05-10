@@ -1,4 +1,4 @@
-#include <module.h>
+#include <model.h>
 #define TEST
 
 class SecureAttention {
@@ -17,10 +17,10 @@ public:
 
     ~SecureAttention() {}
 
-    void forward(const std::vector<double> &input) {
+    void forward(const matrix &input) {
         size_t i, j;
         int d_k = d_module / n_heads;
-        std::vector<double> ra_WQa(d_module * d_k),
+        matrix ra_WQa(d_module * d_k),
             ra_WKa(d_module * d_k),
             ra_WVa(d_module * d_k),
             WQb(d_module * d_k),
@@ -33,7 +33,7 @@ public:
         random_mat(WKb);
         random_mat(WVb);
 #ifdef TEST
-        std::vector<double> WQ, WK, WV;
+        matrix WQ, WK, WV;
         for (i = 0; i < d_module * d_k; i++) {
             WQ.push_back(ra_WQa[i] + WQb[i]);
             WK.push_back(ra_WKa[i] + WKb[i]);
@@ -45,7 +45,7 @@ public:
         std::uniform_real_distribution<> dist(-1, 1);
         double ra = dist(gen);
 
-        std::vector<double> input_a(batch_size * d_module), input_b(batch_size * d_module), ra_xa(batch_size * d_module);
+        matrix input_a(batch_size * d_module), input_b(batch_size * d_module), ra_xa(batch_size * d_module);
         random_mat(input_b, 0, 0.01);
         for (i = 0; i < batch_size * d_module; i++) {
             input_a[i] = input[i] - input_b[i];
@@ -69,14 +69,14 @@ public:
             1. compute: rxw_a + rx_a * w_b + rW_a * x_b + [r_a]_a * xw_b = [r_aI]_a , where I stands for  Q,K,V
             2. genereat random num r_b, compute [r_aQ/r_b]_a, [r_aK/r_b]_a, [(r_b)^2]_b
         */
-        auto cal_raI_A = [](std::vector<double> input_b, std::vector<double> WIb, std::vector<double> ra_xa, std::vector<double> ra_WIa, std::vector<double> ra_xa_WIa,
+        auto cal_raI_A = [](matrix input_b, matrix WIb, matrix ra_xa, matrix ra_WIa, matrix ra_xa_WIa,
                             LongCiphertext ra_secret_a,
                             CKKSKey *bob, CKKSEncoder *encoder, Evaluator *evaluator, size_t d_k) {
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
             LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
 
-            std::vector<double> temp_raI(batch_size * d_k);
+            matrix temp_raI(batch_size * d_k);
             auto temp_raI1 = matmul(ra_xa, WIb, batch_size, d_module, d_k);
             auto temp_raI2 = matmul(input_b, ra_WIa, batch_size, d_module, d_k);
             for (size_t i = 0; i < batch_size * d_k; i++)
@@ -112,11 +112,11 @@ public:
         */
         LongPlaintext raQ_div_rb1_plain = raQ_sec_a.decrypt(alice);
         LongPlaintext raK_div_rb1_plain = raK_sec_a.decrypt(alice);
-        std::vector<double> Q_div_rb1 = raQ_div_rb1_plain.decode(encoder);
-        std::vector<double> K_div_rb1 = raK_div_rb1_plain.decode(encoder);
-        std::vector<double> eZa(batch_size * batch_size);
+        matrix Q_div_rb1 = raQ_div_rb1_plain.decode(encoder);
+        matrix K_div_rb1 = raK_div_rb1_plain.decode(encoder);
+        matrix eZa(batch_size * batch_size);
         random_mat(eZa);
-        std::vector<double> negZa(eZa);
+        matrix negZa(eZa);
         auto sqrt_d_k = sqrt(d_k);
         for (size_t i = 0; i < batch_size * d_k; i++) {
             Q_div_rb1[i] /= ra;
@@ -148,14 +148,14 @@ public:
             bob receive H3, and get Zb, [exp(Zc)]_a
         */
         LongPlaintext eZb_plain = Zb_secret_b.decrypt(bob);
-        std::vector<double> eZb = eZb_plain.decode(encoder);
+        matrix eZb = eZb_plain.decode(encoder);
         double rb2 = dist(gen);
 #ifdef TEST1
         rb2 = 1;
 #endif
-        std::vector<double> Db(batch_size);
+        matrix Db(batch_size);
         random_mat(Db);
-        std::vector<double> O = zero_sum(batch_size, batch_size);
+        matrix O = zero_sum(batch_size, batch_size);
         for (size_t i = 0; i < batch_size * batch_size; i++) {
             eZb[i] = exp(eZb[i]) * rb2;
 #ifdef TEST1
@@ -163,7 +163,7 @@ public:
 #endif
         }
 #ifdef TEST1
-        std::vector<double> Z(batch_size * batch_size);
+        matrix Z(batch_size * batch_size);
         for (i = 0; i < batch_size * batch_size; i++)
             Z[i] = eZb[i] * eZa[i];
         print_mat(Z, batch_size, batch_size);
@@ -176,7 +176,7 @@ public:
 
         for (size_t i = 0; i < batch_size * batch_size; i++)
             eZb[i] = eZb[i] * Db[i / batch_size] / rb2;
-        std::vector<double> Rb(batch_size * d_k);
+        matrix Rb(batch_size * d_k);
         random_mat(Rb);
         for (i = 1; i < batch_size; i++)
             for (j = 0; j < d_k; j++)
@@ -190,7 +190,7 @@ public:
         Rb_plain.mod_switch_to_inplace(raV_sec_a.parms_id(), evaluator);
         raV_sec_a.multiply_plain_inplace(Rb_plain, evaluator);
 
-        std::vector<double> Zb(batch_size * d_k);
+        matrix Zb(batch_size * d_k);
         for (i = 0; i < batch_size; i++)
             for (j = 0; j < d_k; j++)
                 Zb[i * d_k + j] = rb2 / (Db[i] * Rb[j]);
@@ -207,7 +207,7 @@ public:
         for (size_t i = 0; i < batch_size * d_k; i++)
             Rb_V[i] /= ra;
 
-        std::vector<double> exp_sum(batch_size);
+        matrix exp_sum(batch_size);
         for (size_t i = 0; i < batch_size; i++) {
             for (j = 0; j < batch_size; j++) {
                 exp_sum[i] += rs2_expZ[i * batch_size + j];
@@ -240,7 +240,7 @@ public:
             QK[i] = exp(QK[i]);
         }
         // print_mat(QK, batch_size, batch_size);
-        std::vector<double> exp_sum1(batch_size);
+        matrix exp_sum1(batch_size);
         for (i = 0; i < batch_size; i++)
             for (j = 0; j < batch_size; j++)
                 exp_sum1[i] += QK[i * batch_size + j];
@@ -252,7 +252,7 @@ public:
         // print_mat(exp_sum1, batch_size, 1);
         // print_mat(QK, batch_size, batch_size);
         auto result = matmul(QK, V, batch_size, batch_size, d_k);
-        std::vector<double> Z(batch_size * d_k);
+        matrix Z(batch_size * d_k);
         for (i = 0; i < batch_size * d_k; i++) {
             Z[i] = Za[i] * Zb[i] - result[i];
             if (Z[i] < 0) {
@@ -277,13 +277,13 @@ int main() {
     size_t d_k = d_module / n_heads;
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
-    std::vector<double> input(batch_size * d_module);
+    matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     SecureAttention *sattn = new SecureAttention(alice, bob, encoder, evaluator);
     sattn->forward(input);
 
-    /*std::vector<double> input1(8193);
-    std::vector<double> input2(8193);
+    /*matrix input1(8193);
+    matrix input2(8193);
     random_mat(input1);
     random_mat(input2);
     LongPlaintext input1_plain(input1, 1ul<<40, slot_count, encoder);
@@ -319,12 +319,12 @@ int main() {
     std::cout << max_error << "\n";
     */
 
-    /* std::vector<double> very_small_numbers = {2.43e-8};
+    /* matrix very_small_numbers = {2.43e-8};
     Plaintext pt;
     encoder->encode(very_small_numbers, 1ul << 40, pt); // 1e-8
     // Ciphertext ct; alice->encryptor->encrypt(pt, ct); // 1e-8
     // Plaintext res_plain; alice->decryptor->decrypt(ct, res_plain);
-    std::vector<double> res;
+    matrix res;
     encoder->decode(pt, res);
     // encoder->decode(res_plain, res);
     std::cout << res[0] << "\n"; */

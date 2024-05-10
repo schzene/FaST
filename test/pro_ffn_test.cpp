@@ -19,13 +19,13 @@ int main(int argc, const char **argv) {
 
     IOPack *io_pack = new IOPack(party_);
     printf("batch size:       %d\nd_module:         %d\nFFN_dim:          %d\n", batch_size, d_module, ffn_dim);
-    std::vector<double> input(batch_size * d_module);
+    matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     FFN *ffn = new FFN(party, encoder, evaluator, io_pack);
 
     LongCiphertext ln1_secret_a;
     if (party_ == ALICE) {
-        std::vector<double> ln1(batch_size * d_module);
+        matrix ln1(batch_size * d_module);
         random_mat(ln1);
         LongPlaintext ln1_plain(ln1, encoder);
         LongCiphertext ln1_s_a(ln1_plain, party);

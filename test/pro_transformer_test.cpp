@@ -19,7 +19,7 @@ int main(int argc, const char **argv) {
 
     IOPack *io_pack = new IOPack(party_);
     printf("batch size:       %d\nd_module:         %d\nnumber of heads:  %d\n", batch_size, d_module, n_heads);
-    std::vector<double> input(batch_size * d_module);
+    matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     Transformer *transformer = new Transformer(party, encoder, evaluator, io_pack);
 

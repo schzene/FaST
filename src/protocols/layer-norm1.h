@@ -6,6 +6,6 @@ public:
     LayerNorm1(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
                IOPack *io_pack) : Protocol(party, encoder, evaluator, io_pack) {}
     ~LayerNorm1() {}
-    LongCiphertext forward(const LongCiphertext &attn, const std::vector<double> &input) const;
+    LongCiphertext forward(const LongCiphertext &attn, const matrix &input) const;
 };
 #endif

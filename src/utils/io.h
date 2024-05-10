@@ -5,7 +5,6 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-using std::string;
 
 #include <arpa/inet.h>
 #include <emmintrin.h>
@@ -15,6 +14,10 @@ using std::string;
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+using std::cout;
+using std::string;
+
 typedef __m128i block128;
 typedef __m256i block256;
 

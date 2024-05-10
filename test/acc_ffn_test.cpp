@@ -1,4 +1,4 @@
-#include <module.h>
+#include <model.h>
 #define TEST
 
 class SecureFFN {
@@ -11,7 +11,7 @@ class SecureFFN {
         return 0.5 * x * (1 + tanh(sqrt(2 / M_PI) * (x + 0.047715 * x * x * x)));
     }
 
-    inline void activate(std::vector<double> &mat) {
+    inline void activate(matrix &mat) {
         size_t size = mat.size();
         for (size_t i = 0; i < size; i++) {
             mat[i] = gelu(mat[i]);
@@ -29,7 +29,7 @@ public:
 
     void forward(const LongCiphertext &ln_secret_a) {
         size_t i, j;
-        std::vector<double> W1a(d_module * ffn_dim), W1b(d_module * ffn_dim),
+        matrix W1a(d_module * ffn_dim), W1b(d_module * ffn_dim),
             b1a(batch_size * ffn_dim), b1b(batch_size * ffn_dim),
             W2a(ffn_dim * d_module), W2b(ffn_dim * d_module),
             b2a(batch_size * d_module), b2b(batch_size * d_module),
@@ -83,7 +83,7 @@ int main() {
 
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
-    std::vector<double> input(batch_size * d_module);
+    matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     LongPlaintext input_plain(input, encoder);
     LongCiphertext input_secret_a(input_plain, alice);

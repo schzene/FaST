@@ -1,9 +1,9 @@
 #include "mat-tools.h"
 
-std::vector<double> matmul(
-    const std::vector<double> &mat1,
-    const std::vector<double> &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans) {
-    std::vector<double> result(dim1 * dim3);
+matrix matmul(
+    const matrix &mat1,
+    const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans) {
+    matrix result(dim1 * dim3);
     size_t i, j, k;
     if (!trans) {
         for (i = 0; i < dim1; i++) {
@@ -34,7 +34,7 @@ std::vector<double> matmul(
     return result;
 }
 
-void random_mat(std::vector<double> &mat, double min, double max) {
+void random_mat(matrix &mat, double min, double max) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dist(min, max);
@@ -45,8 +45,8 @@ void random_mat(std::vector<double> &mat, double min, double max) {
     }
 }
 
-std::vector<double> zero_sum(size_t row, size_t column) {
-    std::vector<double> mat(row * column);
+matrix zero_sum(size_t row, size_t column) {
+    matrix mat(row * column);
     random_mat(mat);
     size_t i, j;
     for (i = 0; i < row; i++) {
@@ -59,11 +59,11 @@ std::vector<double> zero_sum(size_t row, size_t column) {
     return mat;
 }
 
-void load_mat(std::vector<double> &mat, const char *path) {
+void load_mat(matrix &mat, const char *path) {
     random_mat(mat);
 }
 
-void normalization(std::vector<double> &A, size_t row, size_t column) {
+void normalization(matrix &A, size_t row, size_t column) {
     size_t i, j;
     double max_value = 1ul << 20;
     for (i = 0; i < row * column; i++) {
@@ -84,8 +84,8 @@ void normalization(std::vector<double> &A, size_t row, size_t column) {
     }
 }
 
-std::vector<double> mean(const std::vector<double> &input, size_t row, size_t column) {
-    std::vector<double> result(row);
+matrix mean(const matrix &input, size_t row, size_t column) {
+    matrix result(row);
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {
@@ -96,8 +96,8 @@ std::vector<double> mean(const std::vector<double> &input, size_t row, size_t co
     return result;
 }
 
-std::vector<double> standard_deviation(const std::vector<double> &input, const std::vector<double> means, size_t row, size_t column) {
-    std::vector<double> result(row);
+matrix standard_deviation(const matrix &input, const matrix means, size_t row, size_t column) {
+    matrix result(row);
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {
@@ -109,7 +109,7 @@ std::vector<double> standard_deviation(const std::vector<double> &input, const s
     return result;
 }
 
-void print_mat(const std::vector<double> &A, size_t row, size_t column) {
+void print_mat(const matrix &A, size_t row, size_t column) {
     size_t i, j;
     bool flag1, flag2 = false;
     for (i = 0; i < row; i++) {
@@ -129,15 +129,15 @@ void print_mat(const std::vector<double> &A, size_t row, size_t column) {
             flag2 = true;
         }
     }
-    std::cout << row << " x " << column << std::endl;
+    cout << row << " x " << column << "\n";
 }
 
-void print_all_mat(const std::vector<double> &A, size_t row, size_t column) {
+void print_all_mat(const matrix &A, size_t row, size_t column) {
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {
-            std::cout << A[i * column + j] << " ";
+            cout << A[i * column + j] << " ";
         }
-        std::cout << "\n";
+        cout << "\n";
     }
 }

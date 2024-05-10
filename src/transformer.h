@@ -11,6 +11,6 @@ class Transformer {
 public:
     Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack);
     ~Transformer();
-    void forward(const std::vector<double> &input);
+    void forward(const matrix &input);
 };
 #endif

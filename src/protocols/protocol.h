@@ -1,6 +1,6 @@
 #ifndef FAST_PROTOCOL_H
 #define FAST_PROTOCOL_H
-#include <module.h>
+#include <model.h>
 class Protocol {
 protected:
     CKKSKey *party;

@@ -22,3 +22,6 @@ add_pro_test(transformer)
 
 add_executable(RFCP_matmul_test "RFCP_matmul_test.cpp")
 target_link_libraries(RFCP_matmul_test PUBLIC FaST)
+
+add_executable(mat_test "mat_test.cpp")
+target_link_libraries(mat_test PUBLIC FaST)

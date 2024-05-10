@@ -19,7 +19,7 @@ int main(int argc, const char **argv) {
 
     IOPack *io_pack = new IOPack(party_);
     printf("batch size:       %d\nd_module:         %d\nnumber of heads:  %d\n", batch_size, d_module, n_heads);
-    std::vector<double> input(batch_size * d_module);
+    matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);
     Multi_Head_Attention *attn = new Multi_Head_Attention(party, encoder, evaluator, io_pack);

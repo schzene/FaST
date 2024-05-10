@@ -9,17 +9,21 @@
 
 #include "io.h"
 
+using std::string;
+using std::vector;
 using namespace seal;
+
+typedef vector<double> matrix;
 
 const size_t poly_modulus_degree = 8192;
 const size_t slot_count = poly_modulus_degree / 2;
 const double scale = 1ul << 40;
 
-class length_error : public std::exception {
+class lenth_error : public std::exception {
     const char *message;
 
 public:
-    length_error(const char *msg) : message(msg) {}
+    lenth_error(const char *msg) : message(msg) {}
     const char *what() const throw() override {
         return message;
     }
@@ -39,13 +43,13 @@ public:
 
 class LongPlaintext {
 public:
-    std::vector<Plaintext> plain_data;
+    vector<Plaintext> plain_data;
     size_t len;
     LongPlaintext() {}
     LongPlaintext(const Plaintext &pt);
     LongPlaintext(double data, CKKSEncoder *encoder);
-    LongPlaintext(std::vector<double> data, CKKSEncoder *encoder);
-    std::vector<double> decode(CKKSEncoder *encoder) const;
+    LongPlaintext(matrix data, CKKSEncoder *encoder);
+    matrix decode(CKKSEncoder *encoder) const;
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < plain_data.size(); i++) {
@@ -56,7 +60,7 @@ public:
 
 class LongCiphertext {
 public:
-    std::vector<Ciphertext> cipher_data;
+    vector<Ciphertext> cipher_data;
     size_t len;
     LongCiphertext() {}
     LongCiphertext(const Ciphertext &ct);

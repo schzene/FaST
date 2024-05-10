@@ -19,7 +19,7 @@ int main(int argc, const char **argv) {
 
     IOPack *io_pack = new IOPack(party_);
     printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
-    std::vector<double> input(batch_size * d_module);
+    matrix input(batch_size * d_module);
     random_mat(input);
     LayerNorm1 *ln1 = new LayerNorm1(party, encoder, evaluator, io_pack);
 
@@ -27,7 +27,7 @@ int main(int argc, const char **argv) {
     if (party_ == ALICE) {
         LongCiphertext::recv(io_pack, &attn_secret_b, context);
     } else if (party_ == BOB) {
-        std::vector<double> attn(batch_size * d_module);
+        matrix attn(batch_size * d_module);
         random_mat(attn);
         LongPlaintext attn_plain(attn, encoder);
         LongCiphertext attn_s_b(attn_plain, party);

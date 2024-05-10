@@ -1,5 +1,5 @@
 #include "layer-norm1.h"
-LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector<double> &input) const {
+LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const matrix &input) const {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dist(-1, 1);
@@ -11,7 +11,7 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
         START_TIMER
 #endif
         double ha1 = dist(gen), ha2 = dist(gen);
-        std::vector<double> ha1_xa(input.size());
+        matrix ha1_xa(input.size());
         for (i = 0; i < batch_size * d_module; i++) {
             ha1_xa[i] = ha1 * input[i];
         }
@@ -40,8 +40,8 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
         double ka = dist(gen);
         auto mu_gb = mean(xgb, batch_size, d_module);
         auto sigma_gb = standard_deviation(xgb, mu_gb, batch_size, d_module);
-        std::vector<double> div_sigma_gb(batch_size * d_module);
-        std::vector<double> tmp1(batch_size * d_module);
+        matrix div_sigma_gb(batch_size * d_module);
+        matrix tmp1(batch_size * d_module);
         for (i = 0; i < batch_size; i++) {
             for (j = 0; j < d_module; j++) {
                 tmp1[i * d_module + j] = (xgb[i * d_module + j] - mu_gb[i]) * ka;
@@ -67,7 +67,7 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
             1. compute attn_ha2 + ha1_xa *  [ha2/ha1]_c + xb*[ha2]_c = [x * ha2]_c
             2. generate gs, coupute [x * ha2]_c * gs = [x * ha2 * gs]_c
         */
-        std::vector<double> ha1_xa(batch_size * d_module);
+        matrix ha1_xa(batch_size * d_module);
         LongCiphertext ha2_div_ha1_secret_a, ha2_secret_a, attn_ha2_b;
         recv_mat(io_pack, &ha1_xa);
         LongCiphertext::recv(io_pack, &ha2_div_ha1_secret_a, party->context);
@@ -97,12 +97,12 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const std::vector
             bob receive H3
             1. compute tmp1 * tmp2 = output;
         */
-        std::vector<double> tmp1(batch_size * d_module);
+        matrix tmp1(batch_size * d_module);
         LongCiphertext tmp2_secret_a;
         recv_mat(io_pack, &tmp1);
         LongCiphertext::recv(io_pack, &tmp2_secret_a, party->context);
-        std::vector<double> gamma(batch_size * d_module);
-        std::vector<double> beta(batch_size * d_module);
+        matrix gamma(batch_size * d_module);
+        matrix beta(batch_size * d_module);
         random_mat(gamma);
         random_mat(beta);
         for (i = 0; i < batch_size * d_module; i++) {

@@ -26,7 +26,7 @@ LongPlaintext::LongPlaintext(double data, CKKSEncoder *encoder) {
     plain_data.push_back(pt);
 }
 
-LongPlaintext::LongPlaintext(std::vector<double> data, CKKSEncoder *encoder) {
+LongPlaintext::LongPlaintext(matrix data, CKKSEncoder *encoder) {
     len = data.size();
     size_t slot = slot_count;
     size_t count = len / slot;
@@ -39,11 +39,11 @@ LongPlaintext::LongPlaintext(std::vector<double> data, CKKSEncoder *encoder) {
         encoder->encode(data, scale, pt);
         plain_data.push_back(pt);
     } else {
-        std::vector<double>::iterator curPtr = data.begin(), endPtr = data.end(), end;
+        matrix::iterator curPtr = data.begin(), endPtr = data.end(), end;
         while (curPtr < endPtr) {
             end = endPtr - curPtr > slot ? slot + curPtr : endPtr;
             slot = endPtr - curPtr > slot ? slot : endPtr - curPtr;
-            std::vector<double> temp(curPtr, end);
+            matrix temp(curPtr, end);
             Plaintext pt;
             encoder->encode(temp, scale, pt);
             plain_data.push_back(pt);
@@ -52,18 +52,18 @@ LongPlaintext::LongPlaintext(std::vector<double> data, CKKSEncoder *encoder) {
     }
 }
 
-std::vector<double> LongPlaintext::decode(CKKSEncoder *encoder) const {
-    std::vector<double> data(len);
+matrix LongPlaintext::decode(CKKSEncoder *encoder) const {
+    matrix data(len);
     size_t size = plain_data.size();
     for (size_t i = 0; i < size; i++) {
-        std::vector<double> temp;
+        matrix temp;
         encoder->decode(plain_data[i], temp);
         if (i < size - 1) {
-            std::copy(temp.begin(), temp.end(), data.begin() + i * slot_count);
+            copy(temp.begin(), temp.end(), data.begin() + i * slot_count);
         } else {
             size_t tail_len = len % slot_count;
             tail_len = tail_len ? tail_len : slot_count;
-            std::copy(temp.begin(), temp.begin() + tail_len + 1, data.begin() + i * slot_count);
+            copy(temp.begin(), temp.begin() + tail_len + 1, data.begin() + i * slot_count);
         }
     }
     return data;
@@ -120,7 +120,7 @@ void LongCiphertext::add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator)
         for (size_t i = 0; i < cipher_data.size(); i++)
             evaluator->add_plain_inplace(cipher_data[i], lpt.plain_data[i]);
     } else {
-        throw length_error("Length of LongCiphertext and LongPlaintext mismatch");
+        throw lenth_error("Length of LongCiphertext and LongPlaintext mismatch");
     }
 }
 
@@ -149,7 +149,7 @@ LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt, Evaluator *evaluato
             lct.cipher_data.push_back(ct);
         }
     } else {
-        throw length_error("Length of LongCiphertext and LongPlaintext mismatch");
+        throw lenth_error("Length of LongCiphertext and LongPlaintext mismatch");
     }
     return lct;
 }
@@ -171,7 +171,7 @@ void LongCiphertext::add_inplace(LongCiphertext &lct, Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++)
             evaluator->add_inplace(cipher_data[i], lct.cipher_data[i]);
     } else {
-        throw length_error("Length of LongCiphertext and LongCiphertext mismatch");
+        throw lenth_error("Length of LongCiphertext and LongCiphertext mismatch");
     }
 }
 
@@ -200,7 +200,7 @@ LongCiphertext LongCiphertext::add(LongCiphertext &lct, Evaluator *evaluator) co
             lcct.cipher_data.push_back(ct);
         }
     } else {
-        throw length_error("Length of LongCiphertext and LongCiphertext mismatch");
+        throw lenth_error("Length of LongCiphertext and LongCiphertext mismatch");
     }
     return lcct;
 }
@@ -222,7 +222,7 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evalu
         for (size_t i = 0; i < cipher_data.size(); i++)
             evaluator->multiply_plain_inplace(cipher_data[i], lpt.plain_data[i]);
     } else {
-        throw length_error("Length of LongCiphertext and LongPlaintext mismatch");
+        throw lenth_error("Length of LongCiphertext and LongPlaintext mismatch");
     }
     this->rescale_to_next_inplace(evaluator);
     this->rescale(scale);
@@ -253,7 +253,7 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
             lct.cipher_data.push_back(ct);
         }
     } else {
-        throw length_error("Length of LongCiphertext and LongPlaintext mismatch");
+        throw lenth_error("Length of LongCiphertext and LongPlaintext mismatch");
     }
     lct.rescale_to_next_inplace(evaluator);
     lct.rescale(scale);

@@ -13,7 +13,7 @@ Transformer::~Transformer() {
     delete ln2;
 }
 
-void Transformer::forward(const std::vector<double> &input) {
+void Transformer::forward(const matrix &input) {
     auto output1 = multi_head_attn->forward(input);
     auto output2 = ln1->forward(output1, input);
     ffn->forward(output2);

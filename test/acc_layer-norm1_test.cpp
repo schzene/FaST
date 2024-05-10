@@ -1,4 +1,4 @@
-#include <module.h>
+#include <model.h>
 #define TEST
 
 class SecureLayerNorm1 {
@@ -14,14 +14,14 @@ public:
                                                                      encoder(encoder_),
                                                                      evaluator(evaluator_) {}
 
-    void forward(LongCiphertext &attn_s, const std::vector<double> &input_a, const std::vector<double> &input_b) {
+    void forward(LongCiphertext &attn_s, const matrix &input_a, const matrix &input_b) {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<> dist(-1, 1);
         size_t i, j;
 
         double ha1 = dist(gen), ha2 = dist(gen);
-        std::vector<double> ha1_xa(input_a.size());
+        matrix ha1_xa(input_a.size());
         for (i = 0; i < batch_size * d_module; i++) {
             ha1_xa[i] = ha1 * input_a[i];
         }
@@ -59,8 +59,8 @@ public:
         double ka = dist(gen);
         auto mu_gb = mean(xgb, batch_size, d_module);
         auto sigma_gb = standard_deviation(xgb, mu_gb, batch_size, d_module);
-        std::vector<double> div_sigma_gb(batch_size * d_module);
-        std::vector<double> tmp1(batch_size * d_module);
+        matrix div_sigma_gb(batch_size * d_module);
+        matrix tmp1(batch_size * d_module);
         for (i = 0; i < batch_size; i++) {
             for (j = 0; j < d_module; j++) {
                 tmp1[i * d_module + j] = (xgb[i * d_module + j] - mu_gb[i]) * ka;
@@ -72,8 +72,8 @@ public:
         // send H3 = {tmp1, tmp2_secret_a} to bob
 
         // bob receive H3
-        std::vector<double> gamma(batch_size * d_module);
-        std::vector<double> beta(batch_size * d_module);
+        matrix gamma(batch_size * d_module);
+        matrix beta(batch_size * d_module);
         random_mat(gamma);
         random_mat(beta);
         for (i = 0; i < batch_size * d_module; i++) {
@@ -122,7 +122,7 @@ int main() {
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
 
-    std::vector<double> attn(batch_size * d_module), input_a(batch_size * d_module), input_b(batch_size * d_module);
+    matrix attn(batch_size * d_module), input_a(batch_size * d_module), input_b(batch_size * d_module);
     random_mat(attn);
     random_mat(input_a);
     random_mat(input_b);
