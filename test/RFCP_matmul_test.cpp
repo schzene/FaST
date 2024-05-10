@@ -5,7 +5,7 @@
 using std::thread;
 
 void for_acc(const size_t start, const size_t end,
-             const std::function<void(size_t, size_t)> &for_range, const int threads_count = 4) {
+             const std::function<void(size_t, size_t)> &for_range, const int threads_count = 12) {
     const size_t step = (end - start) / threads_count + 1;
     thread *threads = new thread[threads_count];
 
@@ -84,7 +84,8 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
 }
 
 int main() {
-    auto step = 2;
+    std::cout <<"////////////////////////////////////////////////////////////////////\n//                          _ooOoo_                               //\n//                         o8888888o                              //\n//                         88\" . \"88                              //\n//                         (| -_- |)                              //\n//                         O\\  =  /O                              //\n//                      ____/`---'\\____                           //\n//                    .'  \\\\|     |//  `.                         //\n//                   /  \\\\|||  :  |||//  \\                        //\n//                  /  _||||| -:- |||||-  \\                       //\n//                  |   | \\\\\\  -  /// |   |                       //\n//                  | \\_|  ''\\---/''  |   |                       //\n//                  \\  .-\\__  `-`  ___/-. /                       //\n//                ___`. .'  /--.--\\  `. . ___                     //\n//              .\"\" '<  `.___\\_<|>_/___.'  >'\"\".                  //\n//            | | :  `- \\`.;`\\ _ /`;.`/ - ` : | |                 //\n//            \\  \\ `-.   \\_ __\\ /__ _/   .-` /  /                 //\n//      ========`-.____`-.___\\_____/___.-`____.-'========         //\n//                           `=---='                              //\n//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //\n//            佛祖保佑       永不宕机     永无BUG                 //\n////////////////////////////////////////////////////////////////////\n";
+    auto step = 1;
     size_t dim1 = batch_size / step, dim2 = d_module / step, dim3 = ffn_dim / step, i, j;
     matrix A(dim1 * dim2), B(dim2 * dim3);
     random_mat(A);
@@ -105,10 +106,13 @@ int main() {
         }
     }
     LongCiphertext *lct = new LongCiphertext[dim2];
-    for (i = 0; i < dim2; i++) {
-        LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
-        lct[i] = LongCiphertext(lpt, party);
-    }
+    auto for_range = [&Ae, lct, party, encoder, &dim1, &dim3](size_t start, size_t end) {
+        for (size_t i = start; i < end; i++) {
+            LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
+            lct[i] = LongCiphertext(lpt, party);
+        }
+    };
+    for_acc(0, dim2, for_range);
 
     // START_TIMER
     // auto true_result_secret = RFCP_matmul(lct, B, dim1, dim2, dim3, encoder, evaluator);
@@ -119,8 +123,8 @@ int main() {
     START_TIMER
     auto result_secret = RFCP_matmul_multi_thread(lct, B, dim1, dim2, dim3, encoder, evaluator);
     STOP_TIMER("RFCP_matmul_multi_thread")
-    auto result_plain = result_secret.decrypt(party);
-    auto result = result_plain.decode(encoder);
+    // auto result_plain = result_secret.decrypt(party);
+    // auto result = result_plain.decode(encoder);
     // for (i = 0; i < dim1 * dim3; i++) {
     //     true_result[i] -= result[i];
     // }
