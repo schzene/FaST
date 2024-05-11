@@ -62,9 +62,9 @@ void printMatrix(const vector<vector<int>> &matrix)
 
 int main()
 {
-    int M = 4;
-    int N = 4;
-    int K = 4;
+    int M = 128;
+    int N = 768;
+    int K = 3072;
     vector<vector<int>> A(M, vector<int>(N, 0));
     vector<vector<int>> B(N, vector<int>(K, 0));
 
@@ -103,7 +103,7 @@ int main()
 
         // cout << "omp_time: " << cost_omp.count() << endl;
         // cout << "Result of matrix multiplication (A * B):" << endl;
-        printMatrix(result2);
+        // printMatrix(result2);
         return 0;
     }
 }

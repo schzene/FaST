@@ -3,7 +3,7 @@
 #include <iostream>
 #include <random>
 #include <vector>
-
+#include <omp.h>
 #include "io.h"
 
 std::vector<double> matmul(const std::vector<double> &mat1, const std::vector<double> &mat2,
@@ -17,12 +17,17 @@ std::vector<double> standard_deviation(const std::vector<double> &input, const s
 void print_mat(const std::vector<double> &A, size_t row, size_t column);
 void print_all_mat(const std::vector<double> &A, size_t row, size_t column);
 
-inline void send_mat(IOPack *io_pack, std::vector<double> *mat) {
+inline void send_mat(IOPack *io_pack, std::vector<double> *mat)
+{
     io_pack->send_data(mat->data(), mat->size() * sizeof(double));
 }
 
-inline void recv_mat(IOPack *io_pack, std::vector<double> *mat) {
+inline void recv_mat(IOPack *io_pack, std::vector<double> *mat)
+{
     io_pack->recv_data(mat->data(), mat->size() * sizeof(double));
 }
+
+// std::vector < double matmul_omp(const std::vector<double> &mat1,
+//                                 const std::vector<double> &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans);
 
 #endif
