@@ -20,6 +20,7 @@ add_library(FaST_Utils
     he-tools.cpp
     io.cpp
     mat-tools.cpp
+    multithread.cpp
 )
 
 target_include_directories(FaST_Utils PRIVATE

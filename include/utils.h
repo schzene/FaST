@@ -3,5 +3,6 @@
 #include <utils/he-tools.h>
 #include <utils/io.h>
 #include <utils/mat-tools.h>
+#include <utils/multithread.h>
 #include <utils/time-count.h>
 #endif

@@ -1,25 +1,4 @@
 #include <model.h>
-#include <mutex>
-#include <thread>
-
-using std::thread;
-
-void for_acc(const size_t start, const size_t end,
-             const std::function<void(size_t, size_t)> &for_range, const int threads_count = 12) {
-    const size_t step = (end - start) / threads_count + 1;
-    thread *threads = new thread[threads_count];
-
-    for (int i = 0; i < threads_count; ++i) {
-        size_t thread_start = start + i * step;
-        size_t thread_end = std::min(thread_start + step, end);
-        threads[i] = thread(for_range, thread_start, thread_end);
-    }
-    for (int i = 0; i < threads_count; ++i) {
-        threads[i].join();
-    }
-
-    delete[] threads;
-}
 
 INIT_TIMER
 
@@ -62,9 +41,8 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
     }
     LongPlaintext lpt = LongPlaintext(matrix(Be.begin(), Be.begin() + dim1 * dim3), encoder);
     LongCiphertext result = A_secret[0].multiply_plain(lpt, evaluator);
-    std::mutex mtx;
 
-    auto for_range = [&Be, &dim1, &dim2, &dim3, &A_secret, evaluator, encoder, &result, &mtx](size_t start, size_t end) {
+    auto for_range = [&Be, &dim1, &dim2, &dim3, &A_secret, evaluator, encoder, &result](size_t start, size_t end, mutex *mtx) {
         LongPlaintext lpt_start = LongPlaintext(matrix(Be.begin() + dim1 * dim3 * start, Be.begin() + dim1 * dim3 * (start + 1)), encoder);
         LongCiphertext tmp1 = A_secret[start].multiply_plain(lpt_start, evaluator);
 
@@ -75,7 +53,7 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
         }
 
         {
-            std::lock_guard<std::mutex> lock(mtx);
+            std::lock_guard<mutex> lock(*mtx);
             result.add_inplace(tmp1, evaluator);
         }
     };
@@ -84,7 +62,7 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
 }
 
 int main() {
-    std::cout <<"////////////////////////////////////////////////////////////////////\n//                          _ooOoo_                               //\n//                         o8888888o                              //\n//                         88\" . \"88                              //\n//                         (| -_- |)                              //\n//                         O\\  =  /O                              //\n//                      ____/`---'\\____                           //\n//                    .'  \\\\|     |//  `.                         //\n//                   /  \\\\|||  :  |||//  \\                        //\n//                  /  _||||| -:- |||||-  \\                       //\n//                  |   | \\\\\\  -  /// |   |                       //\n//                  | \\_|  ''\\---/''  |   |                       //\n//                  \\  .-\\__  `-`  ___/-. /                       //\n//                ___`. .'  /--.--\\  `. . ___                     //\n//              .\"\" '<  `.___\\_<|>_/___.'  >'\"\".                  //\n//            | | :  `- \\`.;`\\ _ /`;.`/ - ` : | |                 //\n//            \\  \\ `-.   \\_ __\\ /__ _/   .-` /  /                 //\n//      ========`-.____`-.___\\_____/___.-`____.-'========         //\n//                           `=---='                              //\n//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //\n//            佛祖保佑       永不宕机     永无BUG                 //\n////////////////////////////////////////////////////////////////////\n";
+    std::cout << "////////////////////////////////////////////////////////////////////\n//                          _ooOoo_                               //\n//                         o8888888o                              //\n//                         88\" . \"88                              //\n//                         (| -_- |)                              //\n//                         O\\  =  /O                              //\n//                      ____/`---'\\____                           //\n//                    .'  \\\\|     |//  `.                         //\n//                   /  \\\\|||  :  |||//  \\                        //\n//                  /  _||||| -:- |||||-  \\                       //\n//                  |   | \\\\\\  -  /// |   |                       //\n//                  | \\_|  ''\\---/''  |   |                       //\n//                  \\  .-\\__  `-`  ___/-. /                       //\n//                ___`. .'  /--.--\\  `. . ___                     //\n//              .\"\" '<  `.___\\_<|>_/___.'  >'\"\".                  //\n//            | | :  `- \\`.;`\\ _ /`;.`/ - ` : | |                 //\n//            \\  \\ `-.   \\_ __\\ /__ _/   .-` /  /                 //\n//      ========`-.____`-.___\\_____/___.-`____.-'========         //\n//                           `=---='                              //\n//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //\n//            佛祖保佑       永不宕机     永无BUG                 //\n////////////////////////////////////////////////////////////////////\n";
     auto step = 1;
     size_t dim1 = batch_size / step, dim2 = d_module / step, dim3 = ffn_dim / step, i, j;
     matrix A(dim1 * dim2), B(dim2 * dim3);
@@ -106,7 +84,7 @@ int main() {
         }
     }
     LongCiphertext *lct = new LongCiphertext[dim2];
-    auto for_range = [&Ae, lct, party, encoder, &dim1, &dim3](size_t start, size_t end) {
+    auto for_range = [&Ae, lct, party, encoder, &dim1, &dim3](size_t start, size_t end, mutex *mtx) {
         for (size_t i = start; i < end; i++) {
             LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
             lct[i] = LongCiphertext(lpt, party);
@@ -119,18 +97,21 @@ int main() {
     // STOP_TIMER("RFCP_matmul")
     // auto true_result_plain = true_result_secret.decrypt(party);
     // auto true_result = true_result_plain.decode(encoder);
+    START_TIMER
+    auto true_result = matmul(A, B, dim1, dim2, dim3);
+    STOP_TIMER("matmul");
 
     START_TIMER
     auto result_secret = RFCP_matmul_multi_thread(lct, B, dim1, dim2, dim3, encoder, evaluator);
     STOP_TIMER("RFCP_matmul_multi_thread")
-    // auto result_plain = result_secret.decrypt(party);
-    // auto result = result_plain.decode(encoder);
-    // for (i = 0; i < dim1 * dim3; i++) {
-    //     true_result[i] -= result[i];
-    // }
+    auto result_plain = result_secret.decrypt(party);
+    auto result = result_plain.decode(encoder);
+    for (i = 0; i < dim1 * dim3; i++) {
+        true_result[i] -= result[i];
+    }
 
-    // std::cout << "error:\n";
-    // print_mat(true_result, dim1, dim3);
+    std::cout << "error:\n";
+    print_mat(true_result, dim1, dim3);
 
     delete context;
     delete encoder;

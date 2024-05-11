@@ -1,5 +1,5 @@
-#ifndef FAST_TIME_COUNT_H__
-#define FAST_TIME_COUNT_H__
+#ifndef FAST_TIME_COUNT_HPP__
+#define FAST_TIME_COUNT_HPP__
 #include <iostream>
 
 #define INIT_TIMER                                                \
