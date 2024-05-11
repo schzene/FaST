@@ -4,7 +4,8 @@
 // #define SOFTMAX_TIME_TEST
 class Multi_Head_Attention;
 
-class Attention : public Protocol {
+class Attention : public Protocol
+{
     int head;
 
 public:
@@ -15,7 +16,8 @@ public:
     std::vector<double> forward(const std::vector<double> &input) const;
 };
 
-class Multi_Head_Attention : public Protocol {
+class Multi_Head_Attention : public Protocol
+{
     Attention **attns;
 
 public:

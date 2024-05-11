@@ -22,3 +22,11 @@ add_pro_test(transformer)
 
 add_executable(RFCP_matmul_test "RFCP_matmul_test.cpp")
 target_link_libraries(RFCP_matmul_test PUBLIC FaST)
+
+
+find_package(OpenMP REQUIRED)
+add_executable(omp_test "opm_test.cpp")
+target_link_libraries(omp_test 
+PUBLIC 
+FaST 
+OpenMP::OpenMP_CXX )

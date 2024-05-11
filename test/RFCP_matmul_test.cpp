@@ -3,21 +3,26 @@
 LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
                            const std::vector<double> &B,
                            size_t dim1, size_t dim2, size_t dim3,
-                           CKKSEncoder *encoder, Evaluator *evaluator) {
+                           CKKSEncoder *encoder, Evaluator *evaluator)
+{
     // we assume that A_secret has encoded
     size_t i, j, k;
     std::vector<double> Be(dim1 * dim2 * dim3);
-    for (i = 0; i < dim2; i++) {
-        for (j = 0; j < dim1 * dim3; j++) {
+    for (i = 0; i < dim2; i++)
+    {
+        for (j = 0; j < dim1 * dim3; j++)
+        {
             Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
         }
     }
     LongPlaintext *lpt = new LongPlaintext[dim2];
-    for (i = 0; i < dim2; i++) {
+    for (i = 0; i < dim2; i++)
+    {
         lpt[i] = LongPlaintext(std::vector<double>(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
     }
     LongCiphertext result = A_secret[0].multiply_plain(lpt[0], evaluator);
-    for (i = 1; i < dim2; i++) {
+    for (i = 1; i < dim2; i++)
+    {
         LongCiphertext tmp = A_secret[i].multiply_plain(lpt[i], evaluator);
         result.add_inplace(tmp, evaluator);
     }
@@ -25,9 +30,12 @@ LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
     return result;
 }
 
-int main() {
+int main()
+{
     auto step = 2;
-    size_t dim1 = d_module / step, dim2 = d_module / step, dim3 = d_module / step, i, j;
+    // size_t dim1 = d_module / step, dim2 = d_module / step, dim3 = d_module / step, i, j;
+
+    size_t dim1 = 768, dim2 = 3072, dim3 = 64, i, j;
     std::vector<double> A(dim1 * dim2), B(dim2 * dim3);
     random_mat(A);
     random_mat(B);
@@ -46,13 +54,16 @@ int main() {
     CKKSKey *party = new CKKSKey(1, context);
 
     std::vector<double> Ae(dim1 * dim2 * dim3);
-    for (i = 0; i < dim2; i++) {
-        for (j = 0; j < dim1 * dim3; j++) {
+    for (i = 0; i < dim2; i++)
+    {
+        for (j = 0; j < dim1 * dim3; j++)
+        {
             Ae[i * dim1 * dim3 + j] = A[j / dim3 * dim2 + i];
         }
     }
     LongCiphertext *lct = new LongCiphertext[dim2];
-    for (i = 0; i < dim2; i++) {
+    for (i = 0; i < dim2; i++)
+    {
         LongPlaintext lpt(std::vector<double>(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
         lct[i] = LongCiphertext(lpt, party);
     }
@@ -63,8 +74,8 @@ int main() {
     auto result_plain = result_secret.decrypt(party);
     auto result = result_plain.decode(encoder);
 
-    print_mat(true_result, dim1, dim3);
-    print_mat(result, dim1, dim3);
+    // print_mat(true_result, dim1, dim3);
+    // print_mat(result, dim1, dim3);
 
     delete context;
     delete encoder;
