@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "io.h"
+#include "multithread.h"
 
 using std::cout;
 using std::vector;

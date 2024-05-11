@@ -1,4 +1,5 @@
 #include "mat-tools.h"
+#include <omp.h>
 
 matrix matmul(
     const matrix &mat1,
@@ -6,14 +7,13 @@ matrix matmul(
     matrix result(dim1 * dim3);
     size_t i, j, k;
     if (!trans) {
-        for (i = 0; i < dim1; i++) {
-            const size_t base_idx1 = i * dim2;
-            const size_t base_idx2 = i * dim3;
-            for (k = 0; k < dim2; k++) {
-                const size_t base_idx3 = k * dim3;
-                const double tmp = mat1[base_idx1 + k];
-                for (j = 0; j < dim3; j++) {
-                    result[base_idx2 + j] += tmp * mat2[base_idx3 + j];
+        {
+#pragma omp parallel for
+            for (i = 0; i < dim1; i++) {
+                for (k = 0; k < dim2; k++) {
+                    for (j = 0; j < dim3; j++) {
+                        result[i * dim3 + j] += mat1[i * dim2 + k] * mat2[k * dim3 + j];
+                    }
                 }
             }
         }

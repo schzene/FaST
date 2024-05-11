@@ -1,36 +1,87 @@
-#include <iostream>
-#include <functional>
-#include <thread>
+#include <model.h>
 
-using std::thread;
-
-void for_acc(const size_t start, const size_t end,
-             const std::function<void(size_t, size_t)> &for_range, const int threads_count = 4) {
-    const size_t step = (end - start) / threads_count + 1;
-    thread *threads = new thread[threads_count];
-
-    for (int i = 0; i < threads_count; ++i) {
-        size_t thread_start = start + i * step;
-        size_t thread_end = std::min(thread_start + step, end);
-        threads[i] = thread(for_range, thread_start, thread_end);
+matrix matmul1(
+    const matrix &mat1,
+    const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans = false) {
+    matrix result(dim1 * dim3);
+    size_t i, j, k;
+    if (!trans) {
+        auto for_range = [&mat1, &mat2, &result, &dim1, &dim2, &dim3](size_t start, size_t end, mutex *mtx) {
+            size_t i, j, k;
+            for (i = start; i < end; i++) {
+                for (k = 0; k < dim2; k++) {
+                    for (j = 0; j < dim3; j++) {
+                        result[i * dim3 + j] += mat1[i * dim2 + k] * mat2[k * dim3 + j];
+                    }
+                }
+            }
+        };
+        for_acc(0, dim1, for_range);
+    } else {
+        for (i = 0; i < dim1; i++) {
+            const size_t base_idx1 = i * dim2;
+            const size_t base_idx2 = i * dim3;
+            for (j = 0; j < dim3; j++) {
+                const size_t base_idx3 = j * dim3;
+                double sum = 0.;
+                for (k = 0; k < dim2; k++) {
+                    sum += mat1[base_idx1 + k] * mat2[base_idx3 + k];
+                }
+                result[base_idx2 + j] = sum;
+            }
+        }
     }
-    for (int i = 0; i < threads_count; ++i) {
-        threads[i].join();
-    }
-
-    delete[] threads;
+    return result;
 }
 
-int count = 0;
-void process_range(int start, int end) {
-    for (int i = start; i < end; i++) {
-        count += i;
+matrix matmul2(
+    const matrix &mat1,
+    const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans = false) {
+    matrix result(dim1 * dim3);
+    size_t i, j, k;
+    if (!trans) {
+        for (i = 0; i < dim1; i++) {
+            const size_t base_idx1 = i * dim2;
+            const size_t base_idx2 = i * dim3;
+            for (k = 0; k < dim2; k++) {
+                const size_t base_idx3 = k * dim3;
+                const double tmp = mat1[base_idx1 + k];
+                for (j = 0; j < dim3; j++) {
+                    result[base_idx2 + j] += tmp * mat2[base_idx3 + j];
+                }
+            }
+        }
+    } else {
+        for (i = 0; i < dim1; i++) {
+            const size_t base_idx1 = i * dim2;
+            const size_t base_idx2 = i * dim3;
+            for (j = 0; j < dim3; j++) {
+                const size_t base_idx3 = j * dim3;
+                double sum = 0.;
+                for (k = 0; k < dim2; k++) {
+                    sum += mat1[base_idx1 + k] * mat2[base_idx3 + k];
+                }
+                result[base_idx2 + j] = sum;
+            }
+        }
     }
+    return result;
 }
 
 int main() {
-    const int start = 1, end = 1001;
-    for_acc(start, end, process_range, 4);
-    std::cout << count << "\n";
-    return 0;
+    matrix A(batch_size * d_module);
+    matrix B(d_module * ffn_dim);
+    INIT_TIMER
+
+    START_TIMER
+    auto result = matmul(A, B, batch_size, d_module, ffn_dim);
+    STOP_TIMER("omp matmul")
+
+    START_TIMER
+    auto true_result = matmul1(A, B, batch_size, d_module, ffn_dim);
+    STOP_TIMER("multithread matmul")
+
+    START_TIMER
+    auto true_result2 = matmul2(A, B, batch_size, d_module, ffn_dim);
+    STOP_TIMER("matmul")
 }
