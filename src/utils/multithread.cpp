@@ -21,7 +21,3 @@ void for_acc(const size_t start, const size_t end,
         t.join();
     }
 }
-
-void multi_thread(const std::function<void(mutex *)> &task, const int thread_count) {
-
-}
