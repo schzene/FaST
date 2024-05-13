@@ -4,18 +4,24 @@ mutex mtx;
 
 void for_acc(const size_t start, const size_t end,
              const std::function<void(size_t, size_t, mutex *)> &for_range,
-             const int threads_count) {
-    const size_t step = (end - start) / threads_count + 1;
-    thread *threads = new thread[threads_count];
+             const int max_threads) {
+    const size_t step = (end - start) / max_threads + 1;
+    std::vector<thread> threads;
 
-    for (int i = 0; i < threads_count; i++) {
+    for (int i = 0; i < max_threads; i++) {
         size_t thread_start = start + i * step;
+        if (thread_start > end) {
+            break;
+        }
         size_t thread_end = std::min(thread_start + step, end);
-        threads[i] = thread(for_range, thread_start, thread_end, &mtx);
+        threads.push_back(thread(for_range, thread_start, thread_end, &mtx));
     }
-    for (int i = 0; i < threads_count; i++) {
-        threads[i].join();
+    
+    for (thread &t: threads) {
+        t.join();
     }
+}
 
-    delete[] threads;
+void multi_thread(const std::function<void(mutex *)> &task, const int thread_count) {
+
 }

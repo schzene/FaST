@@ -2,26 +2,53 @@
 
 INIT_TIMER
 
-LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
-                           const matrix &B,
-                           size_t dim1, size_t dim2, size_t dim3,
-                           CKKSEncoder *encoder, Evaluator *evaluator) {
-    // we assume that A_secret has encoded
-    size_t i, j, k;
+LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encoder,
+                             size_t dim1, size_t dim2, size_t dim3) {
+    matrix Ae(dim1 * dim2 * dim3);
+    {
+#pragma omp parallal for
+        for (size_t i = 0; i < dim2; i++) {
+            for (size_t j = 0; j < dim1 * dim3; j++) {
+                Ae[i * dim1 * dim3 + j] = A[j / dim3 * dim2 + i];
+            }
+        }
+    }
 
+    LongCiphertext *lct = new LongCiphertext[dim2];
+    {
+#pragma omp parallel for
+        for (size_t i = 0; i < dim2; i++) {
+            LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
+            lct[i] = LongCiphertext(lpt, party);
+        }
+    }
+    return lct;
+}
+
+LongCiphertext RFCP_matmul_omp(const LongCiphertext *A_secret,
+                               const matrix &B,
+                               size_t dim1, size_t dim2, size_t dim3,
+                               CKKSEncoder *encoder, Evaluator *evaluator) {
+    // we assume that A_secret has encoded
     matrix Be(dim1 * dim2 * dim3);
-    for (i = 0; i < dim2; i++) {
-        for (j = 0; j < dim1 * dim3; j++) {
-            Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
+    {
+#pragma omp parallel for
+        for (size_t i = 0; i < dim2; i++) {
+            for (size_t j = 0; j < dim1 * dim3; j++) {
+                Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
+            }
         }
     }
 
     LongPlaintext lpt = LongPlaintext(matrix(Be.begin(), Be.begin() + dim1 * dim3), encoder);
     LongCiphertext result = A_secret[0].multiply_plain(lpt, evaluator);
-    for (i = 1; i < dim2; i++) {
-        lpt = LongPlaintext(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
-        LongCiphertext tmp = A_secret[i].multiply_plain(lpt, evaluator);
-        result.add_inplace(tmp, evaluator);
+    {
+#pragma omp parallel for
+        for (size_t i = 1; i < dim2; i++) {
+            lpt = LongPlaintext(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
+            LongCiphertext tmp = A_secret[i].multiply_plain(lpt, evaluator);
+            result.add_inplace(tmp, evaluator);
+        }
     }
     return result;
 }
@@ -31,18 +58,19 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
                                         size_t dim1, size_t dim2, size_t dim3,
                                         CKKSEncoder *encoder, Evaluator *evaluator, const int thread_count = 12) {
     // we assume that A_secret has encoded
-    size_t i, j, k;
-
     matrix Be(dim1 * dim2 * dim3);
-    for (i = 0; i < dim2; i++) {
-        for (j = 0; j < dim1 * dim3; j++) {
-            Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
+    {
+#pragma omp parallal for
+        for (size_t i = 0; i < dim2; i++) {
+            for (size_t j = 0; j < dim1 * dim3; j++) {
+                Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
+            }
         }
     }
     LongPlaintext lpt = LongPlaintext(matrix(Be.begin(), Be.begin() + dim1 * dim3), encoder);
     LongCiphertext result = A_secret[0].multiply_plain(lpt, evaluator);
 
-    auto for_range = [&Be, &dim1, &dim2, &dim3, &A_secret, evaluator, encoder, &result](size_t start, size_t end, mutex *mtx) {
+    for_acc(1, dim2, [&Be, &dim1, &dim2, &dim3, A_secret, evaluator, encoder, &result](size_t start, size_t end, mutex *mtx) {
         LongPlaintext lpt_start = LongPlaintext(matrix(Be.begin() + dim1 * dim3 * start, Be.begin() + dim1 * dim3 * (start + 1)), encoder);
         LongCiphertext tmp1 = A_secret[start].multiply_plain(lpt_start, evaluator);
 
@@ -56,13 +84,12 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
             std::lock_guard<mutex> lock(*mtx);
             result.add_inplace(tmp1, evaluator);
         }
-    };
-    for_acc(1, dim2, for_range);
+    });
     return result;
 }
 
 int main() {
-    std::cout << "////////////////////////////////////////////////////////////////////\n//                          _ooOoo_                               //\n//                         o8888888o                              //\n//                         88\" . \"88                              //\n//                         (| -_- |)                              //\n//                         O\\  =  /O                              //\n//                      ____/`---'\\____                           //\n//                    .'  \\\\|     |//  `.                         //\n//                   /  \\\\|||  :  |||//  \\                        //\n//                  /  _||||| -:- |||||-  \\                       //\n//                  |   | \\\\\\  -  /// |   |                       //\n//                  | \\_|  ''\\---/''  |   |                       //\n//                  \\  .-\\__  `-`  ___/-. /                       //\n//                ___`. .'  /--.--\\  `. . ___                     //\n//              .\"\" '<  `.___\\_<|>_/___.'  >'\"\".                  //\n//            | | :  `- \\`.;`\\ _ /`;.`/ - ` : | |                 //\n//            \\  \\ `-.   \\_ __\\ /__ _/   .-` /  /                 //\n//      ========`-.____`-.___\\_____/___.-`____.-'========         //\n//                           `=---='                              //\n//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //\n//            佛祖保佑       永不宕机     永无BUG                 //\n////////////////////////////////////////////////////////////////////\n";
+    // std::cout << "////////////////////////////////////////////////////////////////////\n//                          _ooOoo_                               //\n//                         o8888888o                              //\n//                         88\" . \"88                              //\n//                         (| -_- |)                              //\n//                         O\\  =  /O                              //\n//                      ____/`---'\\____                           //\n//                    .'  \\\\|     |//  `.                         //\n//                   /  \\\\|||  :  |||//  \\                        //\n//                  /  _||||| -:- |||||-  \\                       //\n//                  |   | \\\\\\  -  /// |   |                       //\n//                  | \\_|  ''\\---/''  |   |                       //\n//                  \\  .-\\__  `-`  ___/-. /                       //\n//                ___`. .'  /--.--\\  `. . ___                     //\n//              .\"\" '<  `.___\\_<|>_/___.'  >'\"\".                  //\n//            | | :  `- \\`.;`\\ _ /`;.`/ - ` : | |                 //\n//            \\  \\ `-.   \\_ __\\ /__ _/   .-` /  /                 //\n//      ========`-.____`-.___\\_____/___.-`____.-'========         //\n//                           `=---='                              //\n//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //\n//            佛祖保佑       永不宕机     永无BUG                 //\n////////////////////////////////////////////////////////////////////\n";
     auto step = 1;
     size_t dim1 = batch_size / step, dim2 = d_module / step, dim3 = ffn_dim / step, i, j;
     matrix A(dim1 * dim2), B(dim2 * dim3);
@@ -77,29 +104,13 @@ int main() {
     Evaluator *evaluator = new Evaluator(*context);
     CKKSKey *party = new CKKSKey(1, context);
 
-    matrix Ae(dim1 * dim2 * dim3);
-    for (i = 0; i < dim2; i++) {
-        for (j = 0; j < dim1 * dim3; j++) {
-            Ae[i * dim1 * dim3 + j] = A[j / dim3 * dim2 + i];
-        }
-    }
-    LongCiphertext *lct = new LongCiphertext[dim2];
-    auto for_range = [&Ae, lct, party, encoder, &dim1, &dim3](size_t start, size_t end, mutex *mtx) {
-        for (size_t i = start; i < end; i++) {
-            LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
-            lct[i] = LongCiphertext(lpt, party);
-        }
-    };
-    for_acc(0, dim2, for_range);
-
-    // START_TIMER
-    // auto true_result_secret = RFCP_matmul(lct, B, dim1, dim2, dim3, encoder, evaluator);
-    // STOP_TIMER("RFCP_matmul")
-    // auto true_result_plain = true_result_secret.decrypt(party);
-    // auto true_result = true_result_plain.decode(encoder);
     START_TIMER
     auto true_result = matmul(A, B, dim1, dim2, dim3);
     STOP_TIMER("matmul");
+
+    START_TIMER
+    LongCiphertext *lct = RFCP_encodeA(A, party, encoder, dim1, dim2, dim3);
+    STOP_TIMER("encode");
 
     START_TIMER
     auto result_secret = RFCP_matmul_multi_thread(lct, B, dim1, dim2, dim3, encoder, evaluator);
@@ -107,11 +118,21 @@ int main() {
     auto result_plain = result_secret.decrypt(party);
     auto result = result_plain.decode(encoder);
     for (i = 0; i < dim1 * dim3; i++) {
-        true_result[i] -= result[i];
+        result[i] -= true_result[i];
     }
-
-    std::cout << "error:\n";
-    print_mat(true_result, dim1, dim3);
+    std::cout << "error of multithread:\n";
+    print_mat(result, dim1, dim3);
+    
+    // START_TIMER
+    // auto result_secret2 = RFCP_matmul_omp(lct, B, dim1, dim2, dim3, encoder, evaluator);
+    // STOP_TIMER("RFCP_matmul_omp")
+    // auto result_plain2 = result_secret2.decrypt(party);
+    // auto result2 = result_plain2.decode(encoder);
+    // for (i = 0; i < dim1 * dim3; i++) {
+    //     result2[i] -= true_result[i];
+    // }
+    // std::cout << "error of omp:\n";
+    // print_mat(result2, dim1, dim3);
 
     delete context;
     delete encoder;

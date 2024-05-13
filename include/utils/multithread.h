@@ -3,6 +3,7 @@
 #include <functional>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 using std::mutex;
 using std::thread;

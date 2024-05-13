@@ -1,33 +1,38 @@
 #include "mat-tools.h"
-#include <omp.h>
 
 matrix matmul(
     const matrix &mat1,
     const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans) {
     matrix result(dim1 * dim3);
-    size_t i, j, k;
     if (!trans) {
         {
 #pragma omp parallel for
-            for (i = 0; i < dim1; i++) {
-                for (k = 0; k < dim2; k++) {
-                    for (j = 0; j < dim3; j++) {
-                        result[i * dim3 + j] += mat1[i * dim2 + k] * mat2[k * dim3 + j];
+            for (size_t i = 0; i < dim1; i++) {
+                const size_t base_idx1 = i * dim2;
+                const size_t base_idx2 = i * dim3;
+                for (size_t k = 0; k < dim2; k++) {
+                    const size_t base_idx3 = k * dim3;
+                    const double tmp = mat1[base_idx1 + k];
+                    for (size_t j = 0; j < dim3; j++) {
+                        result[base_idx2 + j] += tmp * mat2[base_idx3 + j];
                     }
                 }
             }
         }
     } else {
-        for (i = 0; i < dim1; i++) {
-            const size_t base_idx1 = i * dim2;
-            const size_t base_idx2 = i * dim3;
-            for (j = 0; j < dim3; j++) {
-                const size_t base_idx3 = j * dim3;
-                double sum = 0.;
-                for (k = 0; k < dim2; k++) {
-                    sum += mat1[base_idx1 + k] * mat2[base_idx3 + k];
+        {
+#pragma omp parallel for
+            for (size_t i = 0; i < dim1; i++) {
+                const size_t base_idx1 = i * dim2;
+                const size_t base_idx2 = i * dim3;
+                for (size_t j = 0; j < dim3; j++) {
+                    const size_t base_idx3 = j * dim2;
+                    double sum = 0.;
+                    for (size_t k = 0; k < dim2; k++) {
+                        sum += mat1[base_idx1 + k] * mat2[base_idx3 + k];
+                    }
+                    result[base_idx2 + j] = sum;
                 }
-                result[base_idx2 + j] = sum;
             }
         }
     }

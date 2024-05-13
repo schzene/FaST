@@ -1,3 +1,4 @@
+find_package(OpenMP)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 macro(add_acc_test _name)

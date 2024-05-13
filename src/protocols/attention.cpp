@@ -130,7 +130,7 @@ matrix Attention::forward(const matrix &input) const {
 #endif
         auto output = matmul(eScore_b, Rb_V, batch_size, batch_size, d_k);
 #ifdef LOG
-        char* buf = new char[13];
+        char *buf = new char[13];
         sprintf(buf, "Attention-%-2d", head);
         STOP_TIMER(buf)
         delete buf;
@@ -256,7 +256,7 @@ matrix Attention::forward(const matrix &input) const {
         send_mat(io_pack, &eScore_b);
         LongCiphertext::send(io_pack, &raV_sec_a);
 #ifdef LOG
-        char* buf = new char[13];
+        char *buf = new char[13];
         sprintf(buf, "Attention-%-2d", head);
         STOP_TIMER(buf)
         delete buf;
@@ -283,6 +283,7 @@ Multi_Head_Attention::~Multi_Head_Attention() {
 LongCiphertext Multi_Head_Attention::forward(const matrix &input) const {
     matrix output(input.size());
     size_t d_k = d_module / n_heads;
+
     size_t i, j;
     for (int h = 0; h < n_heads; h++) {
         auto output_h = attns[h]->forward(input);
@@ -292,6 +293,7 @@ LongCiphertext Multi_Head_Attention::forward(const matrix &input) const {
             }
         }
     }
+
     LongCiphertext output_secret;
     if (party->party == ALICE) {
         LongCiphertext::recv(io_pack, &output_secret, party->context);

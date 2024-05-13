@@ -4,6 +4,8 @@
 #include <random>
 #include <vector>
 
+#include <omp.h>
+
 #include "io.h"
 #include "multithread.h"
 
