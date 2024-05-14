@@ -5,22 +5,18 @@ INIT_TIMER
 LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encoder,
                              size_t dim1, size_t dim2, size_t dim3) {
     matrix Ae(dim1 * dim2 * dim3);
-    {
 #pragma omp parallal for
-        for (size_t i = 0; i < dim2; i++) {
-            for (size_t j = 0; j < dim1 * dim3; j++) {
-                Ae[i * dim1 * dim3 + j] = A[j / dim3 * dim2 + i];
-            }
+    for (size_t i = 0; i < dim2; i++) {
+        for (size_t j = 0; j < dim1 * dim3; j++) {
+            Ae[i * dim1 * dim3 + j] = A[j / dim3 * dim2 + i];
         }
     }
 
     LongCiphertext *lct = new LongCiphertext[dim2];
-    {
 #pragma omp parallel for
-        for (size_t i = 0; i < dim2; i++) {
-            LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
-            lct[i] = LongCiphertext(lpt, party);
-        }
+    for (size_t i = 0; i < dim2; i++) {
+        LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
+        lct[i] = LongCiphertext(lpt, party);
     }
     return lct;
 }
@@ -31,29 +27,24 @@ LongCiphertext RFCP_matmul_omp(const LongCiphertext *A_secret,
                                CKKSEncoder *encoder, Evaluator *evaluator) {
     // we assume that A_secret has encoded
     matrix Be(dim1 * dim2 * dim3);
-    {
 #pragma omp parallel for
-        for (size_t i = 0; i < dim2; i++) {
-            for (size_t j = 0; j < dim1 * dim3; j++) {
-                Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
-            }
+    for (size_t i = 0; i < dim2; i++) {
+        for (size_t j = 0; j < dim1 * dim3; j++) {
+            Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
         }
     }
 
     LongPlaintext lpt(matrix(Be.begin(), Be.begin() + dim1 * dim3), encoder);
     LongCiphertext result = A_secret[0].multiply_plain(lpt, evaluator);
-    static omp_lock_t lock;
-    {
 #pragma omp parallel for
-        for (size_t i = 1; i < dim2; i++) {
-            LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
-            LongCiphertext tmp_lct = A_secret[i].multiply_plain(tmp_lpt, evaluator);
-            omp_set_lock(&lock);
+    for (size_t i = 1; i < dim2; i++) {
+        LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
+        LongCiphertext tmp_lct = A_secret[i].multiply_plain(tmp_lpt, evaluator);
+#pragma omp critical
+        {
             result.add_inplace(tmp_lct, evaluator);
-            omp_unset_lock(&lock);
         }
     }
-    omp_destroy_lock(&lock);
     return result;
 }
 
@@ -94,7 +85,7 @@ LongCiphertext RFCP_matmul_multi_thread(const LongCiphertext *A_secret,
 
 int main() {
     std::cout << "////////////////////////////////////////////////////////////////////\n//                          _ooOoo_                               //\n//                         o8888888o                              //\n//                         88\" . \"88                              //\n//                         (| -_- |)                              //\n//                         O\\  =  /O                              //\n//                      ____/`---'\\____                           //\n//                    .'  \\\\|     |//  `.                         //\n//                   /  \\\\|||  :  |||//  \\                        //\n//                  /  _||||| -:- |||||-  \\                       //\n//                  |   | \\\\\\  -  /// |   |                       //\n//                  | \\_|  ''\\---/''  |   |                       //\n//                  \\  .-\\__  `-`  ___/-. /                       //\n//                ___`. .'  /--.--\\  `. . ___                     //\n//              .\"\" '<  `.___\\_<|>_/___.'  >'\"\".                  //\n//            | | :  `- \\`.;`\\ _ /`;.`/ - ` : | |                 //\n//            \\  \\ `-.   \\_ __\\ /__ _/   .-` /  /                 //\n//      ========`-.____`-.___\\_____/___.-`____.-'========         //\n//                           `=---='                              //\n//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //\n//            佛祖保佑       永不宕机     永无BUG                 //\n////////////////////////////////////////////////////////////////////\n";
-    auto step = 1;
+    auto step = 4;
     size_t dim1 = batch_size / step, dim2 = d_module / step, dim3 = ffn_dim / step, i, j;
     matrix A(dim1 * dim2), B(dim2 * dim3);
     random_mat(A);
@@ -126,7 +117,7 @@ int main() {
     }
     std::cout << "error of multithread:\n";
     print_mat(result, dim1, dim3);
-    
+
     START_TIMER
     auto result_secret2 = RFCP_matmul_omp(lct, B, dim1, dim2, dim3, encoder, evaluator);
     STOP_TIMER("RFCP_matmul_omp")
