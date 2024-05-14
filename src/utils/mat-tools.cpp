@@ -122,7 +122,12 @@ void print_mat(const matrix &A, size_t row, size_t column) {
         if (i < 5 || row - i < 5) {
             for (j = 0; j < column; j++) {
                 if (j < 5 || column - j < 5) {
-                    printf("%-14lf", A[i * column + j]);
+                    const double elem = A[i * column + j];
+                    if (elem > 0) {
+                    printf(" %-14lf", elem);
+                    } else {
+                        printf("%-15lf", elem);
+                    }
                 } else if (!flag1) {
                     printf("...   ");
                     flag1 = true;
@@ -130,7 +135,7 @@ void print_mat(const matrix &A, size_t row, size_t column) {
             }
             printf("\n");
         } else if (!flag2) {
-            printf("...   \n");
+            printf(" ...   \n");
             flag2 = true;
         }
     }

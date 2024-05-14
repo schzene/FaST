@@ -1,20 +1,25 @@
 #include <model.h>
 #define TEST
 
+#define PARM0 -1.59576912160573081145287233084673061966896057128906
+#define PARM1 0.047715
+
+typedef double (*activate_function)(double);
+
+inline double gelu(double x) {
+    return x / (1 + exp(PARM0 * (x + PARM1 * x * x * x)));
+}
+
 class SecureFFN {
     CKKSKey *alice;
     CKKSKey *bob;
     CKKSEncoder *encoder;
     Evaluator *evaluator;
 
-    inline double gelu(double x) {
-        return 0.5 * x * (1 + tanh(sqrt(2 / M_PI) * (x + 0.047715 * x * x * x)));
-    }
-
-    inline void activate(matrix &mat) {
+    inline void activate(matrix &mat, activate_function activate_func) {
         size_t size = mat.size();
         for (size_t i = 0; i < size; i++) {
-            mat[i] = gelu(mat[i]);
+            mat[i] = activate_func(mat[i]);
         }
     }
 
@@ -63,7 +68,7 @@ public:
         for (i = 0; i < batch_size * ffn_dim; i++) {
             x1[i] += b1[i];
         }
-        activate(x1);
+        activate(x1, gelu);
         auto x2 = matmul(x1, W2, batch_size, ffn_dim, d_module);
         for (i = 0; i < batch_size * d_module; i++) {
             x2[i] += b2[i];
