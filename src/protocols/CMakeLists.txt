@@ -1,8 +1,7 @@
 add_library(FaST_Protocols
     attention.cpp
     ffn.cpp
-    layer-norm1.cpp
-    layer-norm2.cpp
+    layer-norm.cpp
 )
 
 target_include_directories(FaST_Protocols PRIVATE

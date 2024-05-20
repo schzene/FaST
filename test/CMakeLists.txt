@@ -7,7 +7,7 @@ macro(add_acc_test _name)
 endmacro()
 
 add_acc_test(attn)
-add_acc_test(layer-norm1)
+add_acc_test(layer-norm)
 add_acc_test(ffn)
 
 
@@ -17,7 +17,7 @@ macro(add_pro_test _name)
 endmacro()
 
 add_pro_test(attn)
-add_pro_test(layer-norm1)
+add_pro_test(layer-norm)
 add_pro_test(ffn)
 add_pro_test(transformer)
 
@@ -27,6 +27,5 @@ macro(add_test _name)
     target_link_libraries(${_name}_test PUBLIC FaST)
 endmacro()
 
-add_test(RFCP_matmul)
 add_test(mat)
 add_test(BOLT_CP_matmul)

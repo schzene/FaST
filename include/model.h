@@ -6,5 +6,5 @@
 #define batch_size 128
 #define d_module 768
 #define n_heads 12
-#define ffn_dim 3072
+#define ffn_dim 128
 #endif

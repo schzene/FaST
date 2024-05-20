@@ -4,13 +4,13 @@
 
 class Transformer {
     Multi_Head_Attention *multi_head_attn;
-    LayerNorm1 *ln1;
+    LayerNorm *ln1;
     FFN *ffn;
-    LayerNorm2 *ln2;
+    LayerNorm *ln2;
 
 public:
     Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack);
     ~Transformer();
-    void forward(const matrix &input);
+    LongCiphertext forward(const matrix &input);
 };
 #endif

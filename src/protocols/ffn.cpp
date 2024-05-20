@@ -1,6 +1,6 @@
 #include "ffn.h"
 
-void FFN::forward(const LongCiphertext &ln1) {
+LongCiphertext FFN::forward(const LongCiphertext &ln1) {
     if (party->party == ALICE) {
 #ifdef LOG
         INIT_TIMER

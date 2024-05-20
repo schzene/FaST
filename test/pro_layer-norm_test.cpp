@@ -21,7 +21,7 @@ int main(int argc, const char **argv) {
     printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
     matrix input(batch_size * d_module);
     random_mat(input);
-    LayerNorm1 *ln1 = new LayerNorm1(party, encoder, evaluator, io_pack);
+    LayerNorm *ln = new LayerNorm(party, encoder, evaluator, io_pack);
 
     LongCiphertext attn_secret_b;
     if (party_ == ALICE) {
@@ -37,8 +37,8 @@ int main(int argc, const char **argv) {
     io_pack->io_rev->num_rounds = 0;
     INIT_TIMER;
     START_TIMER;
-    LongCiphertext result = ln1->forward(attn_secret_b, input);
-    STOP_TIMER("LayerNorm1");
+    LongCiphertext result = ln->forward(attn_secret_b, input);
+    STOP_TIMER("LayerNorm");
     size_t comm = io_pack->get_comm();
     size_t rounds = io_pack->get_rounds();
     if (comm < 1024) {
@@ -52,7 +52,7 @@ int main(int argc, const char **argv) {
     }
     std::cout << "rounds of communication: " << rounds << "\n";
 
-    delete ln1;
+    delete ln;
     delete io_pack;
     delete party;
     delete evaluator;

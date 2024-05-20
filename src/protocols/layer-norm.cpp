@@ -1,5 +1,5 @@
-#include "layer-norm1.h"
-LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const matrix &input) const {
+#include "layer-norm.h"
+LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &input) const {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dist(-1, 1);
@@ -54,7 +54,7 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const matrix &inp
         send_mat(io_pack, &tmp1);
         LongCiphertext::send(io_pack, &tmp2_secret_a);
 #ifdef LOG
-        STOP_TIMER("Layer Norm1 ")
+        STOP_TIMER("Layer Norm")
 #endif
         return LongCiphertext();
     } else {
@@ -113,7 +113,7 @@ LongCiphertext LayerNorm1::forward(const LongCiphertext &attn, const matrix &inp
         beta_plain.mod_switch_to_inplace(ln_secret_a.parms_id(), evaluator);
         ln_secret_a.add_plain_inplace(beta_plain, evaluator);
 #ifdef LOG
-        STOP_TIMER("Layer Norm1 ")
+        STOP_TIMER("Layer Norm")
 #endif
         return ln_secret_a;
     }
