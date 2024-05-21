@@ -221,21 +221,27 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evalu
         for (Plaintext pt : lpt.plain_data) {
             Ciphertext ctemp;
             evaluator->multiply_plain(ct, pt, ctemp);
+            evaluator->rescale_to_next_inplace(ctemp);
+            ctemp.scale() = scale;
             cipher_data.push_back(ctemp);
         }
     } else if (lpt.len == 1) {
-        for (size_t i = 0; i < cipher_data.size(); i++)
+        for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->multiply_plain_inplace(cipher_data[i], lpt.plain_data[0]);
+            evaluator->rescale_to_next_inplace(cipher_data[i]);
+            cipher_data[i].scale() = scale;
+        }
     } else if (len == lpt.len) {
-        for (size_t i = 0; i < cipher_data.size(); i++)
+        for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->multiply_plain_inplace(cipher_data[i], lpt.plain_data[i]);
+            evaluator->rescale_to_next_inplace(cipher_data[i]);
+            cipher_data[i].scale() = scale;
+        }
     } else {
         char buf[100];
         sprintf(buf, "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch", len, lpt.len);
         throw lenth_error(buf);
     }
-    this->rescale_to_next_inplace(evaluator);
-    this->rescale(scale);
 }
 
 LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) const {
@@ -246,6 +252,8 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
         for (size_t i = 0; i < lpt.plain_data.size(); i++) {
             Ciphertext ct;
             evaluator->multiply_plain(cipher_data[0], lpt.plain_data[i], ct);
+            evaluator->rescale_to_next_inplace(ct);
+            ct.scale() = scale;
             lct.cipher_data.push_back(ct);
         }
     } else if (lpt.len == 1) {
@@ -253,6 +261,8 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
         for (size_t i = 0; i < cipher_data.size(); i++) {
             Ciphertext ct;
             evaluator->multiply_plain(cipher_data[i], lpt.plain_data[0], ct);
+            evaluator->rescale_to_next_inplace(ct);
+            ct.scale() = scale;
             lct.cipher_data.push_back(ct);
         }
     } else if (len == lpt.len) {
@@ -260,6 +270,8 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
         for (size_t i = 0; i < cipher_data.size(); i++) {
             Ciphertext ct;
             evaluator->multiply_plain(cipher_data[i], lpt.plain_data[i], ct);
+            evaluator->rescale_to_next_inplace(ct);
+            ct.scale() = scale;
             lct.cipher_data.push_back(ct);
         }
     } else {
@@ -267,8 +279,6 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
         sprintf(buf, "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch", len, lpt.len);
         throw lenth_error(buf);
     }
-    lct.rescale_to_next_inplace(evaluator);
-    lct.rescale(scale);
     return lct;
 }
 

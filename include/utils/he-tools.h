@@ -94,7 +94,7 @@ public:
         }
     }
 
-    inline parms_id_type parms_id() {
+    inline const parms_id_type parms_id() const noexcept {
         return cipher_data[0].parms_id();
     }
 };

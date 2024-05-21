@@ -88,16 +88,32 @@ int main() {
     matrix A(batch_size * d_module);
     matrix B(batch_size * d_module);
     random_mat(A);
-    random_mat(B);
-    INIT_TIMER
+    for (size_t i = 0; i < batch_size * d_module; i++) {
+        B[i] = 1e-9;
+    }
+    EncryptionParameters parms(scheme_type::ckks);
+    parms.set_poly_modulus_degree(poly_modulus_degree);
+    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
+    SEALContext *context = new SEALContext(parms);
+    CKKSEncoder *encoder = new CKKSEncoder(*context);
+    Evaluator *evaluator = new Evaluator(*context);
+    CKKSKey *party = new CKKSKey(1, context);
 
-    START_TIMER
-    auto result = matmul(A, B, batch_size, d_module, batch_size);
-    STOP_TIMER("omp random_mat")
+    LongPlaintext A_plain(A, encoder), zero(B, encoder);
+    LongCiphertext A_secret(A_plain, party);
+    A_secret.multiply_plain_inplace(zero, evaluator);
+    LongPlaintext A_p = A_secret.decrypt(party);
+    auto A_ = A_p.decode(encoder);
+    print_mat(A_, batch_size, d_module);
+    // INIT_TIMER
 
-    START_TIMER
-    auto true_result = matmul1(A, B, batch_size, d_module, batch_size);
-    STOP_TIMER("random_mat")
+    // START_TIMER
+    // auto result = matmul(A, B, batch_size, d_module, batch_size);
+    // STOP_TIMER("omp random_mat")
+
+    // START_TIMER
+    // auto true_result = matmul1(A, B, batch_size, d_module, batch_size);
+    // STOP_TIMER("random_mat")
 
     // START_TIMER
     // auto result1 = matmul(A, B, batch_size, d_module, ffn_dim);
