@@ -44,7 +44,9 @@ class SecureFFN {
         parm3.mod_switch_to_inplace(x3.parms_id(), evaluator);
         parm2.mod_switch_to_inplace(x2.parms_id(), evaluator);
         parm1.mod_switch_to_inplace(x1.parms_id(), evaluator);
-        LongCiphertext f3_ = x3.multiply_plain(parm3, evaluator), tmp1 = x2.multiply_plain(parm2, evaluator), tmp2 = x1.multiply_plain(parm1, evaluator);
+        LongCiphertext f3_ = x3.multiply_plain(parm3, evaluator, &alice->relin_keys),
+                       tmp1 = x2.multiply_plain(parm2, evaluator, &alice->relin_keys),
+                       tmp2 = x1.multiply_plain(parm1, evaluator, &alice->relin_keys);
         f3_.add_inplace(tmp1, evaluator);
         f3_.add_inplace(tmp2, evaluator);
         parm0.mod_switch_to_inplace(f3_.parms_id(), evaluator);
@@ -96,7 +98,7 @@ public:
             W2a(ffn_dim * d_module), W2b(ffn_dim * d_module),
             B2a(batch_size * d_module), B2b(batch_size * d_module),
             W1(d_module * ffn_dim), B1(batch_size * ffn_dim), W2(ffn_dim * d_module), B2(batch_size * d_module),
-            xb(batch_size * d_module), neg_xb(batch_size * d_module);
+            xb(batch_size * d_module), neg_xb(batch_size * d_module), x1b(batch_size * ffn_dim), neg_x1b(batch_size * ffn_dim);
         random_mat(W1a);
         random_mat(W1b);
         random_mat(B1a);
@@ -106,6 +108,7 @@ public:
         random_mat(B2a);
         random_mat(B2b);
         random_mat(xb);
+        random_mat(x1b);
 
 #ifdef TEST
         for (i = 0; i < ffn_dim * d_module; i++) {
@@ -127,13 +130,16 @@ public:
         for (i = 0; i < batch_size * d_module; i++) {
             neg_xb[i] = -xb[i];
         }
+        for (i = 0; i < batch_size * ffn_dim; i++) {
+            neg_x1b[i] = -x1b[i];
+        }
         LongPlaintext neg_xb_plain(neg_xb, encoder);
         LongCiphertext xa_secret_a = ln_secret_a.add_plain(neg_xb_plain, evaluator);
         // send xa_secret_a to alice
 
         LongPlaintext xa_plain = xa_secret_a.decrypt(alice);
         matrix va_xa = xa_plain.decode(encoder);
-        double va = 1; // dist(gen);
+        double va = dist(gen);
         for (i = 0; i < batch_size * d_module; i++) {
             va_xa[i] *= va;
         }
@@ -145,14 +151,14 @@ public:
         LongCiphertext B1a_secret_a(B1a_plain, alice), div_va_secret_a(div_va_plain, alice);
         // send va_xa, va_xa_W1a, W1a, b1a_secret_a, div_va_secret_a to bob
 
-        matrix tmp1 = matmul(va_xa, W1b, batch_size, d_module, ffn_dim);
-        matrix tmp2 = matmul(xb, W1a, batch_size, d_module, ffn_dim);
+        matrix tmp11 = matmul(va_xa, W1b, batch_size, d_module, ffn_dim);
+        matrix tmp12 = matmul(xb, W1a, batch_size, d_module, ffn_dim);
         matrix xb_W1b = matmul(xb, W1b, batch_size, d_module, ffn_dim);
         for (i = 0; i < batch_size * ffn_dim; i++) {
-            tmp1[i] = tmp1[i] + tmp2[i] + va_xa_W1a[i];
+            tmp11[i] = tmp11[i] + tmp12[i] + va_xa_W1a[i];
         }
-        LongPlaintext tmp1_plain(tmp1, encoder), xb_W1b_plain(xb_W1b, encoder), B1b_plain(B1b, encoder);
-        LongCiphertext x1_secret_a = div_va_secret_a.multiply_plain(tmp1_plain, evaluator);
+        LongPlaintext tmp11_plain(tmp11, encoder), xb_W1b_plain(xb_W1b, encoder), B1b_plain(B1b, encoder);
+        LongCiphertext x1_secret_a = div_va_secret_a.multiply_plain(tmp11_plain, evaluator);
         xb_W1b_plain.mod_switch_to_inplace(x1_secret_a.parms_id(), evaluator);
         x1_secret_a.add_plain_inplace(xb_W1b_plain, evaluator);
         B1a_secret_a.add_plain_inplace(B1b_plain, evaluator);
@@ -238,31 +244,102 @@ public:
             x1_4[i] = x1_2[i] * x1_2[i];
         }
         LongPlaintext x1_plain(rs_rc_x1, encoder), x1_2_plain(x1_2, encoder), x1_3_plain(x1_3, encoder), x1_4_plain(x1_4, encoder);
-        x1_secret_a_.multiply_plain_inplace(x1_plain, evaluator);
-        x1_2_secret_a_.multiply_plain_inplace(x1_2_plain, evaluator);
-        x1_3_secret_a_.multiply_plain_inplace(x1_3_plain, evaluator);
-        x1_4_secret_a_.multiply_plain_inplace(x1_4_plain, evaluator);
+        x1_secret_a_.multiply_plain_inplace(x1_plain, evaluator, &alice->relin_keys);
+        x1_2_secret_a_.multiply_plain_inplace(x1_2_plain, evaluator, &alice->relin_keys);
+        x1_3_secret_a_.multiply_plain_inplace(x1_3_plain, evaluator, &alice->relin_keys);
+        x1_4_secret_a_.multiply_plain_inplace(x1_4_plain, evaluator, &alice->relin_keys);
         LongPlaintext b1_plain(b1, encoder), b2_plain(b2, encoder), b3_plain(b3, encoder), b4_plain(b4, encoder);
 
         b4_plain.mod_switch_to_inplace(x1_secret_a_.parms_id(), evaluator);
-        LongCiphertext gelu_secret_a = x1_secret_a_.multiply_plain(b4_plain, evaluator);
+        LongCiphertext f4_ = x1_secret_a_.multiply_plain(b4_plain, evaluator),
+                       f3_ = f3(x1_secret_a_, x1_2_secret_a_, x1_3_secret_a_),
+                       f2_ = f2(x1_secret_a_, x1_2_secret_a_, x1_4_secret_a_),
+                       f1_ = f1(x1_secret_a_, x1_2_secret_a_, x1_3_secret_a_, x1_4_secret_a_);
 
-        LongCiphertext f3_ = f3(x1_secret_a_, x1_2_secret_a_, x1_3_secret_a_);
-        // b3_plain.mod_switch_to_inplace(f3_.parms_id(), evaluator);
-        // f3_.multiply_plain_inplace(b3_plain, evaluator);
-        // LongCiphertext f2_ = f2(x1_secret_a_, x1_2_secret_a_, x1_4_secret_a_);
-        // b2_plain.mod_switch_to_inplace(f2_.parms_id(), evaluator);
-        // f2_.multiply_plain_inplace(b2_plain, evaluator);
-        // LongCiphertext f1_ = f1(x1_secret_a_, x1_2_secret_a_, x1_3_secret_a_, x1_4_secret_a_);
-        // b1_plain.mod_switch_to_inplace(f1_.parms_id(), evaluator);
-        // f1_.multiply_plain_inplace(b1_plain, evaluator);
-        // gelu_secret_a.add_inplace(f3_, evaluator);
-        // gelu_secret_a.add_inplace(f2_, evaluator);
-        // gelu_secret_a.add_inplace(f1_, evaluator);
+        /** TODO1
+         * This is a narrow impl, as CKKS can not multiply too many times, so we let alice decrypt 
+         * the ciphertext and re-encrypt the data.
+         * We will solve this problem later.
+         * 
+        */       
+        // double rs_f4 = dist(gen), rs_f3 = dist(gen), rs_f2 = dist(gen), rs_f1 = dist(gen);
+        // LongPlaintext rs_f4_plain(rs_f4, encoder), rs_f3_plain(rs_f3, encoder), rs_f2_plain(rs_f2, encoder), rs_f1_plain(rs_f1, encoder);
+        // LongPlaintext neg_rs_f4_plain(-rs_f4, encoder), neg_rs_f3_plain(-rs_f3, encoder), neg_rs_f2_plain(-rs_f2, encoder), neg_rs_f1_plain(-rs_f1, encoder);
+        // rs_f4_plain.mod_switch_to_inplace(f4_.parms_id(), evaluator);
+        // rs_f3_plain.mod_switch_to_inplace(f3_.parms_id(), evaluator);
+        // rs_f2_plain.mod_switch_to_inplace(f2_.parms_id(), evaluator);
+        // rs_f1_plain.mod_switch_to_inplace(f1_.parms_id(), evaluator);
+        // f4_.add_plain_inplace(rs_f4_plain, evaluator);
+        // f3_.add_plain_inplace(rs_f3_plain, evaluator);
+        // f2_.add_plain_inplace(rs_f2_plain, evaluator);
+        // f1_.add_plain_inplace(rs_f1_plain, evaluator);
+        // send f4_, f3_, f2_, f1 to alice
 
-        LongPlaintext gelu_plain = gelu_secret_a.decrypt(alice);
-        matrix gelu_ = gelu_plain.decode(encoder);
-        print_mat(gelu_, batch_size, ffn_dim);
+        LongPlaintext f4_plain = f4_.decrypt(alice), f3_plain = f3_.decrypt(alice), f2_plain = f2_.decrypt(alice), f1_plain = f1_.decrypt(alice);
+        matrix f4_m = f4_plain.decode(encoder), f3_m = f3_plain.decode(encoder), f2_m = f2_plain.decode(encoder), f1_m = f1_plain.decode(encoder);
+        LongPlaintext _f4_plain(f4_m, encoder), _f3_plain(f3_m, encoder), _f2_plain(f2_m, encoder), _f1_plain(f1_m, encoder);
+        LongCiphertext _f4_(_f4_plain, alice), _f3_(_f3_plain, alice), _f2_(_f2_plain, alice), _f1_(_f1_plain, alice);
+        // send _f3_, _f2_, _f1_ to bob
+        
+        // _f4_.add_plain_inplace(neg_rs_f4_plain, evaluator);
+        // _f3_.add_plain_inplace(neg_rs_f3_plain, evaluator);
+        // _f2_.add_plain_inplace(neg_rs_f2_plain, evaluator);
+        // _f1_.add_plain_inplace(neg_rs_f1_plain, evaluator);
+        /**
+         * end TODO1
+        */
+        _f3_.multiply_plain_inplace(b3_plain, evaluator);
+        _f2_.multiply_plain_inplace(b2_plain, evaluator);
+        _f1_.multiply_plain_inplace(b1_plain, evaluator);
+        _f1_.add_inplace(_f3_, evaluator);
+        _f1_.add_inplace(_f2_, evaluator);
+        _f4_.mod_switch_to_inplace(_f1_.parms_id(), evaluator);
+        _f1_.add_inplace(_f4_, evaluator);  // _f1_ is gelu
+
+        LongPlaintext neg_x1b_plain(neg_x1b, encoder);
+        neg_x1b_plain.mod_switch_to_inplace(_f1_.parms_id(), evaluator);
+        _f1_.add_plain_inplace(neg_x1b_plain, evaluator);
+        // send _f1_ to alice
+        
+        LongPlaintext x1a_plain = _f1_.decrypt(alice);
+        matrix v1a_x1a = x1a_plain.decode(encoder);
+        double v1a = 1;dist(gen);
+        
+        matrix v1a_x1a_W2a = matmul(v1a_x1a, W2a, batch_size, ffn_dim, d_module);
+        matrix tmp21 =       matmul(v1a_x1a, W2b, batch_size, ffn_dim, d_module);
+        matrix tmp22 =           matmul(x1b, W2a, batch_size, ffn_dim, d_module);
+        matrix x1b_W2b =         matmul(x1b, W2b, batch_size, ffn_dim, d_module);
+        for (i = 0; i < batch_size * ffn_dim; i++) {
+            v1a_x1a[i] *= v1a;
+            v1a_x1a[i] += x1b[i];
+        }
+        for (i = 0; i < ffn_dim * d_module; i++) {
+            W2a[i] *= v1a;
+            W2a[i] += W2b[i];
+        }
+        auto tmp = matmul(v1a_x1a, W2a, batch_size, ffn_dim, d_module);
+        print_mat(tmp, batch_size, d_module);
+        // print_mat(W2a, ffn_dim, d_module);
+        // print_mat(v1a_x1a, batch_size, ffn_dim);
+        // LongPlaintext B2a_plain(B2a, encoder), div_v1a_plain(1. / v1a, encoder);
+        // LongCiphertext B2a_secret_a(B2a_plain, alice), div_v1a_secret_a(div_v1a_plain, alice);
+        // send v1a_x1a, v1a_x1a_W2a, W2a, B2a_secret_a, div_v1a_secret_a to bob
+        
+        // for (i = 0; i < batch_size * d_module; i++) {
+        //     tmp21[i] = tmp21[i] + tmp22[i] + v1a_x1a_W2a[i]+ x1b_W2b[i];
+        // }
+        // print_mat(tmp21, batch_size, d_module);
+        // LongPlaintext tmp21_plain(tmp21, encoder), x1b_W2b_plain(x1b_W2b, encoder), B2b_plain(B2b, encoder);
+        // LongCiphertext x2_secret_a = div_v1a_secret_a.multiply_plain(tmp21_plain, evaluator);
+        // x1b_W2b_plain.mod_switch_to_inplace(x2_secret_a.parms_id(), evaluator);
+        // x2_secret_a.add_plain_inplace(x1b_W2b_plain, evaluator);
+        // B2a_secret_a.add_plain_inplace(B2b_plain, evaluator);
+        // B2a_secret_a.mod_switch_to_inplace(x2_secret_a.parms_id(), evaluator);
+        // x2_secret_a.add_inplace(B2a_secret_a, evaluator);
+
+        // LongPlaintext x2_plain = x2_secret_a.decrypt(alice);
+        // matrix x2_ = x2_plain.decode(encoder);
+        // print_mat(x2_, batch_size, d_module);
 
         std::cout << "Secure Feed Forward done.\n";
 
@@ -274,12 +351,13 @@ public:
             x1[i] += B1[i];
         }
         activate(x1, gelu);
-        print_mat(x1, batch_size, ffn_dim);
         auto x2 = matmul(x1, W2, batch_size, ffn_dim, d_module);
-        for (i = 0; i < batch_size * d_module; i++) {
-            x2[i] += B2[i];
-        }
-        // print_mat(x2, batch_size, d_module);
+        // for (i = 0; i < batch_size * d_module; i++) {
+        //     x2[i] += B2[i];
+        // }
+        print_mat(x2, batch_size, d_module);
+        // print_mat(W2, ffn_dim, d_module);
+        // print_mat(x1, batch_size, ffn_dim);
 #endif
     }
 };

@@ -37,6 +37,7 @@ public:
     Encryptor *encryptor;
     Decryptor *decryptor;
     PublicKey public_key;
+    RelinKeys relin_keys;
     CKKSKey(int party_, SEALContext *context_);
     ~CKKSKey();
 };
@@ -71,8 +72,8 @@ public:
     LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
     void add_inplace(LongCiphertext &lct, Evaluator *evaluator);
     LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator) const;
-    void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator);
-    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
+    void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys = nullptr);
+    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys = nullptr) const;
     static void send(IOPack *io_pack, LongCiphertext *lct);
     static void recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context);
 

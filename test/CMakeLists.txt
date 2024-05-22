@@ -29,3 +29,4 @@ endmacro()
 
 add_test(mat)
 add_test(BOLT_CP_matmul)
+add_test(_)
