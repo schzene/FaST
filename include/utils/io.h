@@ -76,8 +76,8 @@ public:
     NetIO(const char *address, int port, bool full_buffer = false, bool quiet = false);
     ~NetIO();
     void sync();
-    void send_data(const void *data, int len);
-    void recv_data(void *data, int len);
+    void send_data(const void *data, int len, bool count_comm = true);
+    void recv_data(void *data, int len, bool count_comm = true);
 
     inline void set_FBF() {
         flush();
@@ -111,8 +111,8 @@ public:
 
     IOPack(int party, std::string address = "127.0.0.1");
     ~IOPack();
-    void send_data(const void *data, int len);
-    void recv_data(void *data, int len);
+    void send_data(const void *data, int len, bool count_comm = true);
+    void recv_data(void *data, int len, bool count_comm = true);
 
     inline uint64_t get_rounds() {
         // no need to count io_rev->num_rounds

@@ -7,11 +7,12 @@
     uint64_t pause_timer = 0;                                     \
     uint64_t stop_timer = 0;
 #define START_TIMER start_timer = std::chrono::high_resolution_clock::now();
-#define PAUSE_TIMER(name)                                                       \
+#define PAUSE_TIMER(name, log)                                                  \
     pause_timer += std::chrono::duration_cast<std::chrono::milliseconds>(       \
                        std::chrono::high_resolution_clock::now() - start_timer) \
                        .count();                                                \
-    std::cout << "[PAUSING TIMER] RUNTIME till now of " << name << ": " << pause_timer << " ms" << std::endl;
+    if (log)                                                                    \
+        std::cout << "[PAUSING TIMER] RUNTIME till now of " << name << ": " << pause_timer << " ms" << std::endl;
 // #define STOP_TIMER(name)                                                      \
 //     std::cout << "------------------------------------" << std::endl;         \
 //     std::cout << "[STOPPING TIMER] Total RUNTIME of " << name << ": "         \

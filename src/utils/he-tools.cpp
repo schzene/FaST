@@ -301,33 +301,33 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *eva
     return lct;
 }
 
-void LongCiphertext::send(IOPack *io_pack, LongCiphertext *lct) {
+void LongCiphertext::send(IOPack *io_pack, LongCiphertext *lct, bool count_comm) {
     assert(lct->len > 0);
-    io_pack->send_data(&(lct->len), sizeof(size_t));
+    io_pack->send_data(&(lct->len), sizeof(size_t), count_comm);
     size_t size = lct->cipher_data.size();
-    io_pack->send_data(&size, sizeof(size_t));
+    io_pack->send_data(&size, sizeof(size_t), count_comm);
     for (size_t ct = 0; ct < size; ct++) {
         std::stringstream os;
         uint64_t ct_size;
         lct->cipher_data[ct].save(os);
         ct_size = os.tellp();
         string ct_ser = os.str();
-        io_pack->send_data(&ct_size, sizeof(uint64_t));
-        io_pack->send_data(ct_ser.c_str(), ct_ser.size());
+        io_pack->send_data(&ct_size, sizeof(uint64_t), count_comm);
+        io_pack->send_data(ct_ser.c_str(), ct_ser.size(), count_comm);
     }
 }
 
-void LongCiphertext::recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context) {
-    io_pack->recv_data(&(lct->len), sizeof(size_t));
+void LongCiphertext::recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context, bool count_comm) {
+    io_pack->recv_data(&(lct->len), sizeof(size_t), count_comm);
     size_t size;
-    io_pack->recv_data(&size, sizeof(size_t));
+    io_pack->recv_data(&size, sizeof(size_t), count_comm);
     for (size_t ct = 0; ct < size; ct++) {
         Ciphertext cct;
         std::stringstream is;
         uint64_t ct_size;
-        io_pack->recv_data(&ct_size, sizeof(uint64_t));
+        io_pack->recv_data(&ct_size, sizeof(uint64_t), count_comm);
         char *c_enc_result = new char[ct_size];
-        io_pack->recv_data(c_enc_result, ct_size);
+        io_pack->recv_data(c_enc_result, ct_size, count_comm);
         is.write(c_enc_result, ct_size);
         cct.unsafe_load(*context, is);
         lct->cipher_data.push_back(cct);

@@ -74,8 +74,8 @@ public:
     LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator) const;
     void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys = nullptr);
     LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys = nullptr) const;
-    static void send(IOPack *io_pack, LongCiphertext *lct);
-    static void recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context);
+    static void send(IOPack *io_pack, LongCiphertext *lct, bool count_comm = true);
+    static void recv(IOPack *io_pack, LongCiphertext *lct, SEALContext *context, bool count_comm = true);
 
     inline void rescale_to_next_inplace(Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++) {

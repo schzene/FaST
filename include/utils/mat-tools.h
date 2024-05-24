@@ -30,12 +30,12 @@ LongCiphertext RFCP_matmul(const LongCiphertext *A_secret, const matrix &B,
                                size_t dim1, size_t dim2, size_t dim3,
                                CKKSEncoder *encoder, Evaluator *evaluator);
 
-inline void send_mat(IOPack *io_pack, matrix *mat) {
-    io_pack->send_data(mat->data(), mat->size() * sizeof(double));
+inline void send_mat(IOPack *io_pack, matrix *mat, bool count_comm = true) {
+    io_pack->send_data(mat->data(), mat->size() * sizeof(double), count_comm);
 }
 
-inline void recv_mat(IOPack *io_pack, matrix *mat) {
-    io_pack->recv_data(mat->data(), mat->size() * sizeof(double));
+inline void recv_mat(IOPack *io_pack, matrix *mat, bool count_comm = true) {
+    io_pack->recv_data(mat->data(), mat->size() * sizeof(double), count_comm);
 }
 
 #endif

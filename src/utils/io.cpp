@@ -80,12 +80,14 @@ void NetIO::sync() {
     }
 }
 
-void NetIO::send_data(const void *data, int len) {
-    if (last_call != LastCall::Send) {
-        num_rounds++;
-        last_call = LastCall::Send;
+void NetIO::send_data(const void *data, int len, bool count_comm) {
+    if (count_comm) {
+        if (last_call != LastCall::Send) {
+            num_rounds++;
+            last_call = LastCall::Send;
+        }
+        counter += len;
     }
-    counter += len;
     int sent = 0;
     while (sent < len) {
         int res = fwrite(sent + (char *)data, 1, len - sent, stream);
@@ -98,10 +100,12 @@ void NetIO::send_data(const void *data, int len) {
     has_sent = true;
 }
 
-void NetIO::recv_data(void *data, int len) {
-    if (last_call != LastCall::Recv) {
-        num_rounds++;
-        last_call = LastCall::Recv;
+void NetIO::recv_data(void *data, int len, bool count_comm) {
+    if (count_comm) {
+        if (last_call != LastCall::Recv) {
+            num_rounds++;
+            last_call = LastCall::Recv;
+        }
     }
     if (has_sent) {
         fflush(stream);
@@ -133,13 +137,13 @@ IOPack::~IOPack() {
     delete io_rev;
 }
 
-void IOPack::send_data(const void *data, int len) {
+void IOPack::send_data(const void *data, int len, bool count_comm) {
     io->send_data(data, len);
     io->last_call = LastCall::Send;
     io->last_call = LastCall::Send;
 }
 
-void IOPack::recv_data(void *data, int len) {
+void IOPack::recv_data(void *data, int len, bool count_comm) {
     io_rev->recv_data(data, len);
     io->last_call = LastCall::Recv;
     io->last_call = LastCall::Recv;

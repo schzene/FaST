@@ -79,7 +79,7 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &inpu
         auto attn_ha2_plain = attn_ha2_b.decrypt(party);
         LongCiphertext xha1_secret_a = ha2_secret_a.multiply_plain(input_b_plain, evaluator);
         attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
-        xha1_secret_a.add_plain_inplace(attn_ha2_plain, evaluator);std::cout << "test\n";
+        xha1_secret_a.add_plain_inplace(attn_ha2_plain, evaluator);
 
         LongPlaintext ha1_xc_plain(ha1_xa, encoder);
         ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xc_plain, evaluator);

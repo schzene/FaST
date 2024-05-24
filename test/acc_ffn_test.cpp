@@ -6,8 +6,36 @@
 typedef double (*activate_function)(double);
 
 int64_t get_exponent(double x) {
-  int64_t x_int = *((int64_t *)&x);
-  return ((x_int >> 52) & 2047) - 1023;
+    int64_t x_int = *((int64_t *)&x);
+    return ((x_int >> 52) & 2047) - 1023;
+}
+
+void print_int_mat(const vector<uint64_t> &A, size_t row, size_t column) {
+    size_t i, j;
+    bool flag1, flag2 = false;
+    for (i = 0; i < row; i++) {
+        flag1 = false;
+        if (i < 5 || row - i < 5) {
+            for (j = 0; j < column; j++) {
+                if (j < 5 || column - j < 5) {
+                    const uint64_t elem = A[i * column + j];
+                    if (elem >= 0) {
+                        printf(" %-14ld", elem);
+                    } else {
+                        printf("%-15ld", elem);
+                    }
+                } else if (!flag1) {
+                    printf("...   ");
+                    flag1 = true;
+                }
+            }
+            printf("\n");
+        } else if (!flag2) {
+            printf(" ...   \n");
+            flag2 = true;
+        }
+    }
+    cout << row << " x " << column << "\n";
 }
 
 // inline double gelu(double x) {
@@ -16,16 +44,16 @@ int64_t get_exponent(double x) {
 
 inline double gelu(double x) {
     double x2 = x * x, x3 = x2 * x, x4 = x2 * x2;
-    if (x < -5.072) {
+    if (x <= -5.072) {
         return 0;
     }
-    if (x < -1.414) {
+    if (x <= -sqrt(2)) {
         return -0.568686678 - 0.529288810 * x - 0.183509590 * x2 - 0.028070202 * x3 - 0.001597741 * x4;
     }
-    if (x < 1.414) {
+    if (x <= sqrt(2)) {
         return 0.001193207 + 0.5 * x + 0.385858026 * x2 - 0.045101361 * x4;
     }
-    if (x < 5.072) {
+    if (x <= 5.072) {
         return -0.438406187 + 1.340789252 * x - 0.087184212 * x2 + 0.007334718 * x3;
     }
     return x;
@@ -361,43 +389,63 @@ public:
         // print_mat(W2, ffn_dim, d_module);
 
         /**
-         * for double value (64 bit), a ULP is about 2^(-52) (the exponent part has 11 digits 
-         * and the tail part has 52 digits, so there are a total of 2^(53) different double 
+         * for double value (64 bit), a ULP is about 2^(-52) (the exponent part has 11 digits
+         * and the tail part has 52 digits, so there are a total of 2^(53) different double
          * value to represent it). so x UPL error is about x * 2^(-52)
-        */
-        // cal gelu ulp error
-        matrix gelu_ulp_error(batch_size * ffn_dim);
-        double avg_gelu_ulp_error = 0;
-        double max_gelu_ulp_error = 0;
-        for (i = 0; i < batch_size * ffn_dim; i++) {
-            double absolute_error = abs(x1[i] - v1a_x1a[i] / v1a - x1b[i]);
-            double ulp_error = absolute_error / exp2(get_exponent(x1[i]) - 23.0);
-            gelu_ulp_error[i] = ulp_error;
-            avg_gelu_ulp_error += ulp_error;
-            max_gelu_ulp_error = max_gelu_ulp_error < ulp_error ? ulp_error : max_gelu_ulp_error;
-        }
-        avg_gelu_ulp_error = avg_gelu_ulp_error / batch_size / ffn_dim;
-        std::cout << "gelu error\n";
-        print_mat(gelu_ulp_error, batch_size, ffn_dim);
-        std::cout << "avg error: " << avg_gelu_ulp_error << "\n";
-        std::cout << "max error: " << max_gelu_ulp_error << "\n\n";
+         */
+        // cal ulp error
+        auto ulp_error = [](matrix actual, matrix expected, size_t row, size_t column) {
+            size_t size = row * column;
+            matrix all_ulp_error(size);
+            double avg_ulp_error = 0, max_ulp_error = 0;
+            for (size_t j = 0; j < size; j++) {
+                double absolute_error = abs(expected[j] - actual[j]);
+                double ulp_error = absolute_error / exp2(get_exponent(expected[j]) - 23.0);
+                all_ulp_error[j] = ulp_error;
+                avg_ulp_error += ulp_error;
+                max_ulp_error = max_ulp_error < ulp_error ? ulp_error : max_ulp_error;
+            }
+            avg_ulp_error /= size;
+            std::cout << "all error\n";
+            print_mat(all_ulp_error, row, column);
+            std::cout << "avg error: " << avg_ulp_error << "\n";
+            std::cout << "max error: " << max_ulp_error << "\n\n";
+        };
+
+        auto fixed_ulp_error = [](matrix actual, matrix expected, size_t row, size_t column, int SCALE) {
+            size_t size = row * column;
+            vector<uint64_t> all_ulp_error(size);
+            double avg_ulp_error = 0;
+            uint64_t max_ulp_error = 0;
+            for (size_t j = 0; j < size; j++) {
+                int64_t expected_fixed = (double(expected[j]) * (1ULL << SCALE));
+                int64_t actual_fixed = (double(actual[j]) * (1ULL << SCALE));
+                uint64_t ulp_err = (expected_fixed - actual_fixed) > 0
+                                       ? (expected_fixed - actual_fixed)
+                                       : (actual_fixed - expected_fixed);
+                all_ulp_error[j] = ulp_err;
+                avg_ulp_error += double(ulp_err);
+                max_ulp_error = max_ulp_error < ulp_err ? ulp_err : max_ulp_error;
+            }
+            avg_ulp_error /= size;
+            std::cout << "all error\n";
+            print_int_mat(all_ulp_error, row, column);
+            std::cout << "avg error: " << avg_ulp_error << "\n";
+            std::cout << "max error: " << max_ulp_error << "\n\n";
+        };
         
-        // cal ffn ulp error
-        matrix ffn_ulp_error(batch_size * d_module);
-        double avg_ffn_ulp_error = 0;
-        double max_ffn_ulp_error = 0;
-        for (i = 0; i < batch_size * d_module; i++) {
-            double absolute_error = abs(x2[i] - x2_[i]);
-            double ulp_error = absolute_error / exp2(get_exponent(x2[i]) - 23.0);
-            ffn_ulp_error[i] = ulp_error;
-            avg_ffn_ulp_error += ulp_error;
-            max_ffn_ulp_error = max_ffn_ulp_error < ulp_error ? ulp_error : max_ffn_ulp_error;
+        int __scale = 1u << 4;
+        // cal gelu ulp error
+        matrix actual_gelu(batch_size * ffn_dim);
+        for (i = 0; i < batch_size * ffn_dim; i++) {
+            actual_gelu[i] = v1a_x1a[i] / v1a + x1b[i];
         }
-        avg_ffn_ulp_error = avg_ffn_ulp_error / batch_size / d_module;
-        std::cout << "ffn error\n";
-        print_mat(ffn_ulp_error, batch_size, d_module);
-        std::cout << "avg error: " << avg_ffn_ulp_error << "\n";
-        std::cout << "max error: " << max_ffn_ulp_error << "\n";
+        // ulp_error(actual_gelu, x1, batch_size, ffn_dim);
+        fixed_ulp_error(actual_gelu, x1, batch_size, ffn_dim, __scale);
+
+        // cal ffn ulp error
+        // ulp_error(x2_, x2, batch_size, d_module);
+        fixed_ulp_error(x2_, x2, batch_size, d_module, __scale);
 #endif
     }
 };
