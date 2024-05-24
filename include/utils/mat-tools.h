@@ -4,7 +4,7 @@
 #include <random>
 #include <vector>
 
-#include <omp.h>
+// #include <omp.h>
 
 #include "he-tools.h"
 #include "io.h"

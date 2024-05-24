@@ -5,6 +5,11 @@
 
 typedef double (*activate_function)(double);
 
+int64_t get_exponent(double x) {
+  int64_t x_int = *((int64_t *)&x);
+  return ((x_int >> 52) & 2047) - 1023;
+}
+
 // inline double gelu(double x) {
 //     return x / (1 + exp(NEG_SQRT_8_DIV_PI * (x + 0.047715 * x * x * x)));
 // }
@@ -332,7 +337,7 @@ public:
 
         auto x2_plain = x2_secret_a.decrypt(alice);
         auto x2_ = x2_plain.decode(encoder);
-        print_mat(x2_, batch_size, d_module);
+        // print_mat(x2_, batch_size, d_module);
 
         std::cout << "Secure Feed Forward done.\n";
 
@@ -352,8 +357,47 @@ public:
         for (i = 0; i < batch_size * d_module; i++) {
             x2[i] += B2[i];
         }
-        print_mat(x2, batch_size, d_module);
+        // print_mat(x2, batch_size, d_module);
         // print_mat(W2, ffn_dim, d_module);
+
+        /**
+         * for double value (64 bit), a ULP is about 2^(-52) (the exponent part has 11 digits 
+         * and the tail part has 52 digits, so there are a total of 2^(53) different double 
+         * value to represent it). so x UPL error is about x * 2^(-52)
+        */
+        // cal gelu ulp error
+        matrix gelu_ulp_error(batch_size * ffn_dim);
+        double avg_gelu_ulp_error = 0;
+        double max_gelu_ulp_error = 0;
+        for (i = 0; i < batch_size * ffn_dim; i++) {
+            double absolute_error = abs(x1[i] - v1a_x1a[i] / v1a - x1b[i]);
+            double ulp_error = absolute_error / exp2(get_exponent(x1[i]) - 23.0);
+            gelu_ulp_error[i] = ulp_error;
+            avg_gelu_ulp_error += ulp_error;
+            max_gelu_ulp_error = max_gelu_ulp_error < ulp_error ? ulp_error : max_gelu_ulp_error;
+        }
+        avg_gelu_ulp_error = avg_gelu_ulp_error / batch_size / ffn_dim;
+        std::cout << "gelu error\n";
+        print_mat(gelu_ulp_error, batch_size, ffn_dim);
+        std::cout << "avg error: " << avg_gelu_ulp_error << "\n";
+        std::cout << "max error: " << max_gelu_ulp_error << "\n\n";
+        
+        // cal ffn ulp error
+        matrix ffn_ulp_error(batch_size * d_module);
+        double avg_ffn_ulp_error = 0;
+        double max_ffn_ulp_error = 0;
+        for (i = 0; i < batch_size * d_module; i++) {
+            double absolute_error = abs(x2[i] - x2_[i]);
+            double ulp_error = absolute_error / exp2(get_exponent(x2[i]) - 23.0);
+            ffn_ulp_error[i] = ulp_error;
+            avg_ffn_ulp_error += ulp_error;
+            max_ffn_ulp_error = max_ffn_ulp_error < ulp_error ? ulp_error : max_ffn_ulp_error;
+        }
+        avg_ffn_ulp_error = avg_ffn_ulp_error / batch_size / d_module;
+        std::cout << "ffn error\n";
+        print_mat(ffn_ulp_error, batch_size, d_module);
+        std::cout << "avg error: " << avg_ffn_ulp_error << "\n";
+        std::cout << "max error: " << max_ffn_ulp_error << "\n";
 #endif
     }
 };

@@ -6,18 +6,18 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &inpu
     size_t i, j;
 
     if (party->party == ALICE) {
+        double ha1 = dist(gen), ha2 = dist(gen), ka = dist(gen);
+        matrix ha1_xa(input.size());
+        LongPlaintext ha2_plain(ha2, encoder);
+        LongCiphertext ha2_div_ha1_secret_a(ha2 / ha1, party, encoder), ha2_secret_a(ha2_plain, party),
+            xha1_secret_a;
 #ifdef LOG
         INIT_TIMER
         START_TIMER
 #endif
-        double ha1 = dist(gen), ha2 = dist(gen);
-        matrix ha1_xa(input.size());
         for (i = 0; i < batch_size * d_module; i++) {
             ha1_xa[i] = ha1 * input[i];
         }
-        LongCiphertext ha2_div_ha1_secret_a(ha2 / ha1, party, encoder);
-        LongPlaintext ha2_plain(ha2, encoder);
-        LongCiphertext ha2_secret_a(ha2_plain, party);
         LongCiphertext attn_ha2_b = attn.multiply_plain(ha2_plain, evaluator);
         // send H1 = {ha1_xa, ha2_div_hc1_secret_a, ha2_secret_a, attn_ha2_b} to bob
         send_mat(io_pack, &ha1_xa);
@@ -30,14 +30,12 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &inpu
             1. compute mean(x * gb) = gb * \mu, standard_deviation(x * gb, gb * \mu) = sigma * gs
             2. generate kc, compute tmp1 = (x * gb - gb * \mu) * kc = (x - \mu)*gb*kc, tmp2_secret_c = [1 / (sigma * gs * ka)]_c
         */
-        LongCiphertext xha1_secret_a;
         LongCiphertext::recv(io_pack, &xha1_secret_a, party->context);
         auto xgb_plain = xha1_secret_a.decrypt(party);
         auto xgb = xgb_plain.decode(encoder);
         for (i = 0; i < batch_size * d_module; i++) {
             xgb[i] /= ha2;
         }
-        double ka = dist(gen);
         auto mu_gb = mean(xgb, batch_size, d_module);
         auto sigma_gb = standard_deviation(xgb, mu_gb, batch_size, d_module);
         matrix div_sigma_gb(batch_size * d_module);
@@ -58,6 +56,12 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &inpu
 #endif
         return LongCiphertext();
     } else {
+        double gb = dist(gen);
+        matrix ha1_xa(batch_size * d_module), tmp1(batch_size * d_module), gamma(batch_size * d_module), beta(batch_size * d_module);
+        LongPlaintext input_b_plain(input, encoder), gb_plain(gb, encoder);
+        LongCiphertext ha2_div_ha1_secret_a, ha2_secret_a, attn_ha2_b, tmp2_secret_a;
+        random_mat(gamma);
+        random_mat(beta);
 #ifdef LOG
         INIT_TIMER
         START_TIMER
@@ -67,27 +71,21 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &inpu
             1. compute attn_ha2 + ha1_xa *  [ha2/ha1]_c + xb*[ha2]_c = [x * ha2]_c
             2. generate gs, coupute [x * ha2]_c * gs = [x * ha2 * gs]_c
         */
-        matrix ha1_xa(batch_size * d_module);
-        LongCiphertext ha2_div_ha1_secret_a, ha2_secret_a, attn_ha2_b;
         recv_mat(io_pack, &ha1_xa);
         LongCiphertext::recv(io_pack, &ha2_div_ha1_secret_a, party->context);
         LongCiphertext::recv(io_pack, &ha2_secret_a, party->context);
         LongCiphertext::recv(io_pack, &attn_ha2_b, party->context);
 
         auto attn_ha2_plain = attn_ha2_b.decrypt(party);
-        LongPlaintext input_b_plain(input, encoder);
         LongCiphertext xha1_secret_a = ha2_secret_a.multiply_plain(input_b_plain, evaluator);
         attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
-        xha1_secret_a.add_plain_inplace(attn_ha2_plain, evaluator);
+        xha1_secret_a.add_plain_inplace(attn_ha2_plain, evaluator);std::cout << "test\n";
 
         LongPlaintext ha1_xc_plain(ha1_xa, encoder);
         ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xc_plain, evaluator);
         ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
         xha1_secret_a.add_inplace(ha2_div_ha1_secret_a, evaluator);
 
-        double gb = dist(gen);
-        gb = 1;
-        LongPlaintext gb_plain(gb, encoder);
         gb_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
         xha1_secret_a.multiply_plain_inplace(gb_plain, evaluator);
         // send H2 = {xha1_secret_a} to alice;
@@ -97,14 +95,8 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &inpu
             bob receive H3
             1. compute tmp1 * tmp2 = output;
         */
-        matrix tmp1(batch_size * d_module);
-        LongCiphertext tmp2_secret_a;
         recv_mat(io_pack, &tmp1);
         LongCiphertext::recv(io_pack, &tmp2_secret_a, party->context);
-        matrix gamma(batch_size * d_module);
-        matrix beta(batch_size * d_module);
-        random_mat(gamma);
-        random_mat(beta);
         for (i = 0; i < batch_size * d_module; i++) {
             tmp1[i] *= gamma[i];
         }
