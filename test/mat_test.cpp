@@ -40,7 +40,9 @@ matrix matmul2(
     size_t i, j, k;
     if (!trans) {
         {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
             for (size_t i = 0; i < dim1; i++) {
                 const size_t base_idx1 = i * dim2;
                 const size_t base_idx2 = i * dim3;
@@ -55,7 +57,9 @@ matrix matmul2(
         }
     } else {
         {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
             for (size_t i = 0; i < dim1; i++) {
                 for (size_t j = 0; j < dim3; j++) {
                     double sum = 0.;
@@ -73,7 +77,9 @@ matrix matmul2(
 matrix mean1(const matrix &input, size_t row, size_t column) {
     matrix result(row);
     {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
         for (size_t i = 0; i < row; i++) {
             for (size_t j = 0; j < column; j++) {
                 result[i] += input[i * column + j];

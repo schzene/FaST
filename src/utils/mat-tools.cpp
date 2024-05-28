@@ -5,7 +5,9 @@ matrix matmul(const matrix &mat1, const matrix &mat2,
     matrix result(dim1 * dim3);
     if (!trans) {
         {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
             for (size_t i = 0; i < dim1; i++) {
                 const size_t base_idx1 = i * dim2;
                 const size_t base_idx2 = i * dim3;
@@ -20,7 +22,9 @@ matrix matmul(const matrix &mat1, const matrix &mat2,
         }
     } else {
         {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
             for (size_t i = 0; i < dim1; i++) {
                 const size_t base_idx1 = i * dim2;
                 const size_t base_idx2 = i * dim3;
@@ -157,7 +161,9 @@ void print_all_mat(const matrix &A, size_t row, size_t column) {
 LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encoder,
                              size_t dim1, size_t dim2, size_t dim3) {
     matrix Ae(dim1 * dim2 * dim3);
-#pragma omp parallal for
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
     for (size_t i = 0; i < dim2; i++) {
         for (size_t j = 0; j < dim1 * dim3; j++) {
             Ae[i * dim1 * dim3 + j] = A[j / dim3 * dim2 + i];
@@ -165,7 +171,9 @@ LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encod
     }
 
     LongCiphertext *lct = new LongCiphertext[dim2];
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
     for (size_t i = 0; i < dim2; i++) {
         LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
         lct[i] = LongCiphertext(lpt, party);
@@ -179,7 +187,9 @@ LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
                            CKKSEncoder *encoder, Evaluator *evaluator) {
     // we assume that A_secret has encoded
     matrix Be(dim1 * dim2 * dim3);
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
     for (size_t i = 0; i < dim2; i++) {
         for (size_t j = 0; j < dim1 * dim3; j++) {
             Be[i * dim1 * dim3 + j] = B[i * dim3 + j % dim3];
@@ -188,11 +198,15 @@ LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
 
     LongPlaintext lpt(matrix(Be.begin(), Be.begin() + dim1 * dim3), encoder);
     LongCiphertext result = A_secret[0].multiply_plain(lpt, evaluator);
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
     for (size_t i = 1; i < dim2; i++) {
         LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
         LongCiphertext tmp_lct = A_secret[i].multiply_plain(tmp_lpt, evaluator);
+#ifdef _OPENMP
 #pragma omp critical
+#endif
         {
             result.add_inplace(tmp_lct, evaluator);
         }
