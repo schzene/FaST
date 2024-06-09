@@ -9,7 +9,7 @@ class Transformer {
     LayerNorm *ln2;
 
 public:
-    Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, IOPack *io_pack);
+    Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io);
     ~Transformer();
     LongCiphertext forward(const matrix &input);
 };

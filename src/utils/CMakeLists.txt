@@ -1,4 +1,4 @@
-find_package(OpenMP)
+find_package(OpenMP REQUIRED)
 find_package(SEAL 4.1.1 EXACT QUIET PATHS "${PROJECT_SOURCE_DIR}/build/" NO_DEFAULT_PATH)
 if (NOT SEAL_FOUND)
     message(STATUS "SEAL 4.1.1 was not found: clone and install SEAL locally")
@@ -18,8 +18,9 @@ if (NOT SEAL_FOUND)
 endif()
 
 add_library(FaST_Utils
+    # conversion.cpp
+    he-bfv.cpp
     he-tools.cpp
-    io.cpp
     mat-tools.cpp
 )
 
@@ -31,4 +32,5 @@ target_link_libraries(FaST_Utils PUBLIC
     OpenMP::OpenMP_CXX
     SEAL::seal
     FaST
+    FaST_SCI
 )

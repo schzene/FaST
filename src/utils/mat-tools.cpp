@@ -56,6 +56,16 @@ void random_mat(matrix &mat, double min, double max, bool binomial) {
     }
 }
 
+void random_bfv_mat(bfv_matrix &mat) {
+    sci::PRG128 prg;
+    size_t size = mat.size();
+    uint64_t *rand_data = new uint64_t[size];
+    prg.random_data(rand_data, size * sizeof(uint64_t));
+    for (size_t i = 0; i < size; i++) {
+        mat[i] = rand_data[i];
+    }
+}
+
 matrix zero_sum(size_t row, size_t column) {
     matrix mat(row * column);
     random_mat(mat);

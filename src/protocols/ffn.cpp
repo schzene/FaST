@@ -43,6 +43,7 @@ LongCiphertext FFN::f1(const LongCiphertext &x1, const LongCiphertext &x2, const
 
 LongCiphertext FFN::forward(const LongCiphertext &ln1) {
     size_t i, j;
+    size_t total_comm = 0;
     matrix W1(d_module * ffn_dim), B1(batch_size * ffn_dim), W2(ffn_dim * d_module), B2(batch_size * d_module);
     load_mat(W1, "WQa-${party}");
     load_mat(B1, "WKa-${party}");
@@ -51,7 +52,7 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dist(-1, 1);
-    if (party->party == ALICE) {
+    if (party->party == sci::ALICE) {
         double va = dist(gen), rc = dist(gen), v1a = dist(gen);
         double div_rc = 1. / rc, div_rc_2 = div_rc * div_rc, div_rc_3 = div_rc_2 * div_rc, div_rc_4 = div_rc_2 * div_rc_2;
         LongPlaintext B1_plain(B1, encoder),
@@ -77,7 +78,7 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
         START_TIMER
 #endif
         // alice receive x_secret_a
-        LongCiphertext::recv(io_pack, &x_secret_a, party->context);
+        LongCiphertext::recv(io, &x_secret_a, party->context);
         LongPlaintext x_plain = x_secret_a.decrypt(party);
         matrix va_x = x_plain.decode(encoder);
         for (i = 0; i < batch_size * d_module; i++) {
@@ -89,18 +90,18 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
         }
 
         // send va_x, va_x_W1a, W1, B1_secret_a, div_va_secret_a to bob
-        send_mat(io_pack, &va_x);
-        send_mat(io_pack, &va_x_W1a);
-        send_mat(io_pack, &W1);
-        LongCiphertext::send(io_pack, &B1_secret_a);
-        LongCiphertext::send(io_pack, &div_va_secret_a);
+        send_mat(io, &va_x);
+        send_mat(io, &va_x_W1a);
+        send_mat(io, &W1);
+        LongCiphertext::send(io, &B1_secret_a);
+        LongCiphertext::send(io, &div_va_secret_a);
 
         // alice receive s0_sgn_secret_a, s1_sgn_secret_a, s2_sgn_secret_a, s3_sgn_secret_a, x1_secret_a
-        LongCiphertext::recv(io_pack, &s0_sgn_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &s1_sgn_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &s2_sgn_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &s3_sgn_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &x1_secret_a, party->context);
+        LongCiphertext::recv(io, &s0_sgn_secret_a, party->context);
+        LongCiphertext::recv(io, &s1_sgn_secret_a, party->context);
+        LongCiphertext::recv(io, &s2_sgn_secret_a, party->context);
+        LongCiphertext::recv(io, &s3_sgn_secret_a, party->context);
+        LongCiphertext::recv(io, &x1_secret_a, party->context);
 
         LongPlaintext rs_x1_plain = x1_secret_a.decrypt(party);
         matrix rs_rc_x1 = rs_x1_plain.decode(encoder);
@@ -120,15 +121,15 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
             rs_rc_x1[i] *= rc;
         }
         // send s0_sgn_a, s1_sgn_a, s2_sgn_a, s3_sgn_a, rs_rc_x1, div_rc_secret_a, div_rc_2_secret_a, div_rc_3_secret_a, div_rc_4_secret_a to bob;
-        send_mat(io_pack, &s0_sgn_a);
-        send_mat(io_pack, &s1_sgn_a);
-        send_mat(io_pack, &s2_sgn_a);
-        send_mat(io_pack, &s3_sgn_a);
-        send_mat(io_pack, &rs_rc_x1);
-        LongCiphertext::send(io_pack, &div_rc_secret_a);
-        LongCiphertext::send(io_pack, &div_rc_2_secret_a);
-        LongCiphertext::send(io_pack, &div_rc_3_secret_a);
-        LongCiphertext::send(io_pack, &div_rc_4_secret_a);
+        send_mat(io, &s0_sgn_a);
+        send_mat(io, &s1_sgn_a);
+        send_mat(io, &s2_sgn_a);
+        send_mat(io, &s3_sgn_a);
+        send_mat(io, &rs_rc_x1);
+        LongCiphertext::send(io, &div_rc_secret_a);
+        LongCiphertext::send(io, &div_rc_2_secret_a);
+        LongCiphertext::send(io, &div_rc_3_secret_a);
+        LongCiphertext::send(io, &div_rc_4_secret_a);
 #ifdef LOG
         PAUSE_TIMER("TODO1", false)
         /** TODO1
@@ -137,25 +138,25 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
          * We will solve this problem later.
          */
         // alice recv f4_, f3_, f2_, f1_
-        LongCiphertext::recv(io_pack, &f4_, party->context, false);
-        LongCiphertext::recv(io_pack, &f3_, party->context, false);
-        LongCiphertext::recv(io_pack, &f2_, party->context, false);
-        LongCiphertext::recv(io_pack, &f1_, party->context, false);
+        LongCiphertext::recv(io, &f4_, party->context, false);
+        LongCiphertext::recv(io, &f3_, party->context, false);
+        LongCiphertext::recv(io, &f2_, party->context, false);
+        LongCiphertext::recv(io, &f1_, party->context, false);
         LongPlaintext f4_plain = f4_.decrypt(party), f3_plain = f3_.decrypt(party), f2_plain = f2_.decrypt(party), f1_plain = f1_.decrypt(party);
         matrix f4_m = f4_plain.decode(encoder), f3_m = f3_plain.decode(encoder), f2_m = f2_plain.decode(encoder), f1_m = f1_plain.decode(encoder);
         LongPlaintext _f4_plain(f4_m, encoder), _f3_plain(f3_m, encoder), _f2_plain(f2_m, encoder), _f1_plain(f1_m, encoder);
         LongCiphertext _f4_(_f4_plain, party), _f3_(_f3_plain, party), _f2_(_f2_plain, party), _f1_(_f1_plain, party);
         // send _f3_, _f2_, _f1_ to bob
-        LongCiphertext::send(io_pack, &_f4_, false);
-        LongCiphertext::send(io_pack, &_f3_, false);
-        LongCiphertext::send(io_pack, &_f2_, false);
-        LongCiphertext::send(io_pack, &_f1_, false);
+        LongCiphertext::send(io, &_f4_, false);
+        LongCiphertext::send(io, &_f3_, false);
+        LongCiphertext::send(io, &_f2_, false);
+        LongCiphertext::send(io, &_f1_, false);
         /**
          * end TODO1
          */
         START_TIMER
 #endif
-        LongCiphertext::recv(io_pack, &gelu_secret_a, party->context);
+        LongCiphertext::recv(io, &gelu_secret_a, party->context);
         LongPlaintext x1a_plain = gelu_secret_a.decrypt(party);
         matrix v1a_x1a = x1a_plain.decode(encoder);
 
@@ -167,21 +168,23 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
             W2[i] *= v1a;
         }
         // send v1a_x1a, v1a_x1a_W2a, W2, B2a_secret_a, div_v1a_secret_a to bob
-        send_mat(io_pack, &v1a_x1a);
-        send_mat(io_pack, &v1a_x1a_W2a);
-        send_mat(io_pack, &W2);
-        LongCiphertext::send(io_pack, &B2a_secret_a);
-        LongCiphertext::send(io_pack, &div_v1a_secret_a);
+        send_mat(io, &v1a_x1a);
+        send_mat(io, &v1a_x1a_W2a);
+        send_mat(io, &W2);
+        LongCiphertext::send(io, &B2a_secret_a);
+        LongCiphertext::send(io, &div_v1a_secret_a);
 
         // alice receive x2_secert_a, vb_secret_b;
-        LongCiphertext::recv(io_pack, &x2_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &vb_secert_b, party->context);
+        LongCiphertext::recv(io, &x2_secret_a, party->context);
+        LongCiphertext::recv(io, &vb_secert_b, party->context);
         LongPlaintext x2_plain_ = x2_secret_a.decrypt(party);
         matrix x2 = x2_plain_.decode(encoder);
         LongPlaintext x2_plain(x2, encoder);
         vb_secert_b.add_plain_inplace(x2_plain, evaluator);
 #ifdef LOG
         STOP_TIMER("Feed Forward")
+        total_comm += io->counter;
+        std::cout << "Feed Forward Send data " << total_comm << " Bytes. \n";
 #endif
         return vb_secert_b;
     } else {
@@ -224,14 +227,14 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
         neg_xb_plain.mod_switch_to_inplace(ln1.parms_id(), evaluator);
         LongCiphertext xa_secret_a = ln1.add_plain(neg_xb_plain, evaluator);
         // send xa_secret_a to alice
-        LongCiphertext::send(io_pack, &xa_secret_a);
+        LongCiphertext::send(io, &xa_secret_a);
 
         // bob receive va_xa, va_xa_W1a, W1a, B1_secret_a, div_va_secret_a;
-        recv_mat(io_pack, &va_xa);
-        recv_mat(io_pack, &va_xa_W1a);
-        recv_mat(io_pack, &W1a);
-        LongCiphertext::recv(io_pack, &B1a_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &div_va_secret_a, party->context);
+        recv_mat(io, &va_xa);
+        recv_mat(io, &va_xa_W1a);
+        recv_mat(io, &W1a);
+        LongCiphertext::recv(io, &B1a_secret_a, party->context);
+        LongCiphertext::recv(io, &div_va_secret_a, party->context);
 
         matrix tmp11 = matmul(va_xa, W1, batch_size, d_module, ffn_dim);
         matrix tmp12 = matmul(x, W1a, batch_size, d_module, ffn_dim);
@@ -267,22 +270,22 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
         rs_plain.mod_switch_to_inplace(x1_secret_a.parms_id(), evaluator);
         x1_secret_a.multiply_plain_inplace(rs_plain, evaluator);
         // send s0_sgn_secret_a, s1_sgn_secret_a, s2_sgn_secret_a, s3_sgn_secret_a, x1_secret_a to alice
-        LongCiphertext::send(io_pack, &s0_sgn_secret_a);
-        LongCiphertext::send(io_pack, &s1_sgn_secret_a);
-        LongCiphertext::send(io_pack, &s2_sgn_secret_a);
-        LongCiphertext::send(io_pack, &s3_sgn_secret_a);
-        LongCiphertext::send(io_pack, &x1_secret_a);
+        LongCiphertext::send(io, &s0_sgn_secret_a);
+        LongCiphertext::send(io, &s1_sgn_secret_a);
+        LongCiphertext::send(io, &s2_sgn_secret_a);
+        LongCiphertext::send(io, &s3_sgn_secret_a);
+        LongCiphertext::send(io, &x1_secret_a);
 
         // Bob receive s0_sgn_a, s1_sgn_a, s2_sgn_a, s3_sgn_a, rs_rc_x1,
-        recv_mat(io_pack, &s0_sgn_a);
-        recv_mat(io_pack, &s1_sgn_a);
-        recv_mat(io_pack, &s2_sgn_a);
-        recv_mat(io_pack, &s3_sgn_a);
-        recv_mat(io_pack, &rs_rc_x1);
-        LongCiphertext::recv(io_pack, &x1_secret_a_, party->context);
-        LongCiphertext::recv(io_pack, &x1_2_secret_a_, party->context);
-        LongCiphertext::recv(io_pack, &x1_3_secret_a_, party->context);
-        LongCiphertext::recv(io_pack, &x1_4_secret_a_, party->context);
+        recv_mat(io, &s0_sgn_a);
+        recv_mat(io, &s1_sgn_a);
+        recv_mat(io, &s2_sgn_a);
+        recv_mat(io, &s3_sgn_a);
+        recv_mat(io, &rs_rc_x1);
+        LongCiphertext::recv(io, &x1_secret_a_, party->context);
+        LongCiphertext::recv(io, &x1_2_secret_a_, party->context);
+        LongCiphertext::recv(io, &x1_3_secret_a_, party->context);
+        LongCiphertext::recv(io, &x1_4_secret_a_, party->context);
         for (i = 0; i < batch_size * ffn_dim; i++) {
             s0_sgn_b[i] = s0_sgn_a[i] * s0_sgn_b[i] > 0 ? 1 : 0;
             s1_sgn_b[i] = s1_sgn_a[i] * s1_sgn_b[i] > 0 ? 1 : 0;
@@ -320,16 +323,16 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
          * We will solve this problem later.
          */
         // send f4_, f3_, f2_, f1_ to alice
-        LongCiphertext::send(io_pack, &f4_, false);
-        LongCiphertext::send(io_pack, &f3_, false);
-        LongCiphertext::send(io_pack, &f2_, false);
-        LongCiphertext::send(io_pack, &f1_, false);
+        LongCiphertext::send(io, &f4_, false);
+        LongCiphertext::send(io, &f3_, false);
+        LongCiphertext::send(io, &f2_, false);
+        LongCiphertext::send(io, &f1_, false);
 
         // bob recv _f4_, _f3_, _f2_, _f1_
-        LongCiphertext::recv(io_pack, &_f4_, party->context, false);
-        LongCiphertext::recv(io_pack, &_f3_, party->context, false);
-        LongCiphertext::recv(io_pack, &_f2_, party->context, false);
-        LongCiphertext::recv(io_pack, &_f1_, party->context, false);
+        LongCiphertext::recv(io, &_f4_, party->context);
+        LongCiphertext::recv(io, &_f3_, party->context, false);
+        LongCiphertext::recv(io, &_f2_, party->context, false);
+        LongCiphertext::recv(io, &_f1_, party->context, false);
         /**
          * end TODO1
          */
@@ -346,14 +349,14 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
         neg_x1b_plain.mod_switch_to_inplace(_f1_.parms_id(), evaluator);
         _f1_.add_plain_inplace(neg_x1b_plain, evaluator);
         // send _f1_ to alice
-        LongCiphertext::send(io_pack, &_f1_);
+        LongCiphertext::send(io, &_f1_);
 
         // bob receive v1a_x1a, v1a_x1a_W2a, W2, B2a_secret_a, div_v1a_secret_a
-        recv_mat(io_pack, &v1a_x1a);
-        recv_mat(io_pack, &v1a_x1a_W2a);
-        recv_mat(io_pack, &W2a);
-        LongCiphertext::recv(io_pack, &B2a_secret_a, party->context);
-        LongCiphertext::recv(io_pack, &div_v1a_secret_a, party->context);
+        recv_mat(io, &v1a_x1a);
+        recv_mat(io, &v1a_x1a_W2a);
+        recv_mat(io, &W2a);
+        LongCiphertext::recv(io, &B2a_secret_a, party->context);
+        LongCiphertext::recv(io, &div_v1a_secret_a, party->context);
 
         matrix tmp21 = matmul(v1a_x1a, W2a, batch_size, ffn_dim, d_module);
         matrix tmp22 = matmul(x1, W2, batch_size, ffn_dim, d_module);
@@ -372,10 +375,12 @@ LongCiphertext FFN::forward(const LongCiphertext &ln1) {
         div_vb_plain.mod_switch_to_inplace(x2_secret_a.parms_id(), evaluator);
         x2_secret_a.add_plain_inplace(div_vb_plain, evaluator);
         // send x2_secret_a, vs_secret_b to bob
-        LongCiphertext::send(io_pack, &x2_secret_a);
-        LongCiphertext::send(io_pack, &vb_secret_b);
+        LongCiphertext::send(io, &x2_secret_a);
+        LongCiphertext::send(io, &vb_secret_b);
 #ifdef LOG
         STOP_TIMER("Feed Forward")
+        total_comm += io->counter;
+        std::cout << "Feed Forward Send data " << total_comm << " Bytes. \n";
 #endif
         return LongCiphertext();
     }

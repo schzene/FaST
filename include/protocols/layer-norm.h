@@ -4,7 +4,7 @@
 class LayerNorm : public Protocol {
 public:
     LayerNorm(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
-               IOPack *io_pack) : Protocol(party, encoder, evaluator, io_pack) {}
+              sci::NetIO *io) : Protocol(party, encoder, evaluator, io) {}
     ~LayerNorm() {}
     LongCiphertext forward(const LongCiphertext &attn, const matrix &input) const;
 };

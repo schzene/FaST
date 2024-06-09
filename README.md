@@ -4,7 +4,7 @@ FaST is Fast and Secure Transformer model implement with C++, based on bert.
 
 # Build
 
-Build FaST is simple, just run:
+You can build FaST using following commands:
 
 ```bash
 mkdir build && cd build
@@ -26,4 +26,4 @@ This repository includes code from the following external repositories:
 
 [Microsoft/SEAL](https://github.com/microsoft/SEAL) for cryptographic tools.
 
-[emp-toolkit/emp-tool](https://github.com/emp-toolkit/emp-tool) for Network IO
+[Microsoft/EzPC/SCI](https://github.com/Loki-chen/EzPC/tree/master/SCI) for Network IO and fixed-point basic operation.

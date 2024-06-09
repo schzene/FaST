@@ -8,6 +8,8 @@ target_include_directories(FaST_Protocols PRIVATE
     ${PROJECT_SOURCE_DIR}/include/protocols
 )
 
-target_link_libraries(FaST_Protocols PUBLIC
+target_link_libraries(FaST_Protocols
+    PUBLIC
     FaST_Utils
+    FaST_SCI
 )
