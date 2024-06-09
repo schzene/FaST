@@ -26,4 +26,4 @@ This repository includes code from the following external repositories:
 
 [Microsoft/SEAL](https://github.com/microsoft/SEAL) for cryptographic tools.
 
-[Microsoft/EzPC/SCI](https://github.com/Loki-chen/EzPC/tree/master/SCI) for Network IO and fixed-point basic operation.
+[Microsoft/EzPC/SCI](https://github.com/mpc-msri/EzPC/tree/master/SCI) for Network IO and fixed-point basic operation.
