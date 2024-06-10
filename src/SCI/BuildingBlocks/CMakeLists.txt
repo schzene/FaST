@@ -11,8 +11,6 @@ if (NOT Eigen3_FOUND)
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/build")
     execute_process(COMMAND ${CMAKE_COMMAND} -DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/build/eigen ${PROJECT_SOURCE_DIR}/extern/eigen
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/build/eigen")
-    execute_process(COMMAND ${CMAKE_COMMAND} --build . --target install -j 16
-        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/build")
     find_package(Eigen3 3.3 REQUIRED NO_MODULE PATHS "${PROJECT_SOURCE_DIR}/build/eigen" NO_DEFAULT_PATH)
 endif()
 
