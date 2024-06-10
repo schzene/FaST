@@ -1,6 +1,6 @@
 [submodule "extern/SEAL"]
 	path = extern/SEAL
-	url = https://github.com/microsoft/SEAL.git
+	url = https://github.com/microsoft/SEAL
 [submodule "extern/eigen"]
 	path = extern/eigen
 	url = https://gitlab.com/libeigen/eigen
