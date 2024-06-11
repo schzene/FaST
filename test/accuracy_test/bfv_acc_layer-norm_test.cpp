@@ -2,6 +2,32 @@
 #include <model.h>
 #define TEST
 
+bfv_matrix fixed_mean(bfv_matrix input, size_t row, size_t column, uint64_t mask) {
+    bfv_matrix result(row);
+    size_t i, j;
+    for (i = 0; i < row; i++) {
+        for (j = 0; j < column; j++) {
+            result[i] += input[i * column + j];
+        }
+        result[i] /= column;
+        result[i] &= mask;
+    }
+    return result;
+}
+
+bfv_matrix fixed_standard_deviation(bfv_matrix input, bfv_matrix means, size_t row, size_t column, uint64_t mask, FixOp * fixop) {
+    bfv_matrix result(row);
+    size_t i, j;
+    for (i = 0; i < row; i++) {
+        for (j = 0; j < column; j++) {
+            result[i] += (input[i * column + j] - means[i]) * (input[i * column + j] - means[i]);
+        }
+        result[i] /= column;
+        result[i] = (uint64_t)sqrt(result[i]) & mask;
+    }
+    return result;
+}
+
 class SecureLayerNorm1 {
     BFVparm *bfv_parm;
     BFVKey *alice;
@@ -13,14 +39,14 @@ class SecureLayerNorm1 {
     sci::OTPack *otpack;
 
 public:
-    SecureLayerNorm1(BFVparm *bfv_parm_, BFVKey *alice_, BFVKey *bob_,
-                     BatchEncoder *encoder_, Evaluator *evaluator_, sci::IOPack *iopack_, sci::OTPack *otpack_) : bfv_parm(bfv_parm_),
-                                                                                                                  alice(alice_),
-                                                                                                                  bob(bob_),
-                                                                                                                  encoder(encoder_),
-                                                                                                                  evaluator(evaluator_),
-                                                                                                                  iopack(iopack_),
-                                                                                                                  otpack(otpack_) {}
+    SecureLayerNorm1(BFVparm *bfv_parm_, BFVKey *alice_, BFVKey *bob_, BatchEncoder *encoder_, Evaluator *evaluator_,
+                     sci::IOPack *iopack_, sci::OTPack *otpack_) : bfv_parm(bfv_parm_),
+                                                                   alice(alice_),
+                                                                   bob(bob_),
+                                                                   encoder(encoder_),
+                                                                   evaluator(evaluator_),
+                                                                   iopack(iopack_),
+                                                                   otpack(otpack_) {}
     void forward(BFVLongCiphertext &attn_s, const bfv_matrix &input_a, const bfv_matrix &input_b) {
 
         sci::PRG128 prg;
@@ -76,11 +102,35 @@ public:
         ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xa_plain, evaluator);
         // ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
         xha1_secret_a.add_inplace(ha2_div_ha1_secret_a, evaluator);
+
+#ifdef TEST
+        int NL_ELL = 29;
+        uint64_t mask = (NL_ELL == 64 ? -1 : ((1ULL << NL_ELL) - 1));
+        FixOp *fix_pub = new FixOp(sci::PUBLIC, iopack, otpack);
+        auto attn_plain = attn_s.decrypt(bob);
+        auto attn = attn_plain.decode(bfv_parm, encoder);
+        for (size_t i = 0; i < batch_size * d_module; i++) {
+            attn[i] = (attn[i] + input_a[i] + input_b[i]) & mask;
+        }
+        auto mu = fixed_mean(attn, batch_size, d_module, mask);
+        auto sigma = fixed_standard_deviation(attn, mu, batch_size, d_module, mask, fix_pub);
+        for (size_t i = 0; i < batch_size; i++) {
+            for (size_t j = 0; j < d_module; j++) {
+                attn[i * d_module + j] = (attn[i * d_module + j] - mu[i]) & mask;
+                // attn[i * d_module + j] = (attn[i * d_module + j] / sigma[i]) & mask;
+                // attn[i * d_module + j] *= gamma[i * d_module + j];
+                // attn[i * d_module + j] += beta[i * d_module + j];
+            }
+        }
+        std::cout << attn[0] << " " << sigma[0] << "\n";
+#endif
     }
 };
 
 int main() {
-    std::cout << default_prime_mod.at(29) << "\n";
+    int NL_ELL = 29;
+    uint64_t mask = (NL_ELL == 64 ? -1 : ((1ULL << NL_ELL) - 1));
+
     BFVparm *bfv_parm = new BFVparm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
 
     BFVKey *alice = new BFVKey(sci::ALICE, bfv_parm->context);
@@ -95,6 +145,11 @@ int main() {
     random_bfv_mat(attn);
     random_bfv_mat(input_a);
     random_bfv_mat(input_b);
+    for (size_t i = 0; i < batch_size * d_module; i++) {
+        attn[i] &= mask;
+        input_a[i] &= mask;
+        input_b[i] &= mask;
+    }
 
     BFVLongPlaintext attn_plain(bfv_parm, attn, encoder);
     BFVLongCiphertext attn_secret_s(attn_plain, bob);
