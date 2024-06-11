@@ -1,5 +1,5 @@
 find_package(OpenMP REQUIRED)
-find_package(SEAL 4.1.1 EXACT QUIET PATHS "${PROJECT_SOURCE_DIR}/build/SEAL" NO_DEFAULT_PATH)
+find_package(SEAL 4.1.1 EXACT QUIET PATHS "${CMAKE_BINARY_DIR}SEAL" NO_DEFAULT_PATH)
 if (NOT SEAL_FOUND)
     message(STATUS "SEAL 4.1.1 was not found: clone and install SEAL locally")
     if (NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/SEAL/CMakeLists.txt")
@@ -11,12 +11,12 @@ if (NOT SEAL_FOUND)
             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/extern/SEAL")
     endif ()
     execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory SEAL
-        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/build/")
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
     execute_process(COMMAND ${CMAKE_COMMAND} ${PROJECT_SOURCE_DIR}/extern/SEAL
-            WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/build/SEAL")
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/SEAL")
     execute_process(COMMAND ${CMAKE_COMMAND} --build . --target install -j 16
-        WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/build/SEAL/")
-    find_package(SEAL 4.1.1 EXACT REQUIRED PATHS "${PROJECT_SOURCE_DIR}/build/SEAL" NO_DEFAULT_PATH)
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/SEAL/")
+    find_package(SEAL 4.1.1 EXACT REQUIRED PATHS "${CMAKE_BINARY_DIR}/SEAL" NO_DEFAULT_PATH)
 endif()
 
 add_library(FaST_Utils

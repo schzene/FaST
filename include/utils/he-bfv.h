@@ -40,15 +40,13 @@ const map<int32_t, uint64_t> default_prime_mod{
 
 class BFVparm {
 public:
-    int party;
-    size_t bfv_poly_modulus_degree;
-    size_t bfv_slot_count;
-    // size_t bfv_slot_count;
-    vector<int> bfv_coeff_bit_sizes;
+    size_t poly_modulus_degree;
+    size_t slot_count;
+    vector<int> coeff_bit_sizes;
     // int32_t bitlength;
-    uint64_t bfv_plain_mod;
+    uint64_t plain_mod;
     SEALContext *context;
-    BFVparm(int party, size_t bfv_poly_modulus_degree, vector<int> bfv_coeff_bit_sizes, uint64_t bfv_plain_mod);
+    BFVparm(size_t poly_modulus_degree, vector<int> coeff_bit_sizes, uint64_t plain_mod);
     ~BFVparm() {}
 };
 
@@ -82,8 +80,9 @@ public:
     size_t len;
     BFVLongPlaintext() {}
     BFVLongPlaintext(const Plaintext &pt);
-    BFVLongPlaintext(uint64_t data, BatchEncoder *encoder); // TODO: len=1
+    BFVLongPlaintext(BFVparm *contex, uint64_t data, BatchEncoder *encoder); // TODO: len=1
     BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncoder *encoder);
+    BFVLongPlaintext(BFVparm *contex, uint64_t *data, size_t len, BatchEncoder *encoder);
     bfv_matrix decode(BFVparm *contex, BatchEncoder *encoder) const;
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {

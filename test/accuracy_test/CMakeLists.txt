@@ -16,4 +16,4 @@ macro(add_bfv_acc_test _name)
     target_link_libraries(bfv_acc_${_name} PUBLIC FaST)
 endmacro()
 
-# add_bfv_acc_test(layer-norm)
+add_bfv_acc_test(layer-norm)

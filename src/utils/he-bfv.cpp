@@ -1,18 +1,16 @@
 #include "he-bfv.h"
 
-BFVparm::BFVparm(int party, size_t bfv_poly_modulus_degree, vector<int> bfv_coeff_bit_sizes, uint64_t bfv_plain_mod) {
-    assert(party == sci::ALICE || party == sci::BOB);
-    this->party = party;
-    this->bfv_poly_modulus_degree = bfv_poly_modulus_degree;
-    this->bfv_slot_count = bfv_poly_modulus_degree;
-    this->bfv_plain_mod = bfv_plain_mod;
+BFVparm::BFVparm(size_t poly_modulus_degree, vector<int> coeff_bit_sizes, uint64_t plain_mod) {
+    this->poly_modulus_degree = poly_modulus_degree;
+    this->slot_count = poly_modulus_degree;
+    this->plain_mod = plain_mod;
     // Generate keys
     EncryptionParameters parms(scheme_type::bfv);
 
-    parms.set_poly_modulus_degree(bfv_poly_modulus_degree);
+    parms.set_poly_modulus_degree(poly_modulus_degree);
     parms.set_coeff_modulus(
-        CoeffModulus::Create(bfv_poly_modulus_degree, bfv_coeff_bit_sizes));
-    parms.set_plain_modulus(bfv_plain_mod);
+        CoeffModulus::Create(poly_modulus_degree, coeff_bit_sizes));
+    parms.set_plain_modulus(plain_mod);
 
     this->context = new SEALContext(parms, true, seal::sec_level_type::tc128);
 }
@@ -38,39 +36,65 @@ BFVLongPlaintext::BFVLongPlaintext(const Plaintext &pt) {
     plain_data.push_back(pt);
 }
 
-BFVLongPlaintext::BFVLongPlaintext(uint64_t data, BatchEncoder *encoder) {
+BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, uint64_t data, BatchEncoder *encoder) {
     // TODO value len =1, use the BFV batchencoder to encode the palaintext
     len = 1;
     Plaintext pt;
-    vector<uint64_t> temp = {data};
+    vector<uint64_t> temp(contex->slot_count, data);
     encoder->encode(temp, pt);
     plain_data.push_back(pt);
 }
 
 BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncoder *encoder) {
-
     len = data.size();
-    size_t bfv_slot = contex->bfv_slot_count; // TODO:: this slot_count use SEALcontext? BFVLongPlaintext contain it.
-    size_t count = len / bfv_slot;
+    size_t slot_count = contex->slot_count; // TODO:: this slot_count use SEALcontext? BFVLongPlaintext contain it.
+    size_t count = len / slot_count;
 
-    if (len % bfv_slot) {
+    if (len % slot_count) {
         count++;
     }
     size_t i, j;
-    if (bfv_slot >= len) {
+    if (slot_count >= len) {
         Plaintext pt;
         encoder->encode(data, pt);
         plain_data.push_back(pt);
     } else {
         bfv_matrix::iterator curPtr = data.begin(), endPtr = data.end(), end;
         while (curPtr < endPtr) {
-            end = endPtr - curPtr > bfv_slot ? bfv_slot + curPtr : endPtr;
-            bfv_slot = endPtr - curPtr > bfv_slot ? bfv_slot : endPtr - curPtr;
+            end = endPtr - curPtr > slot_count ? slot_count + curPtr : endPtr;
+            slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
             bfv_matrix temp(curPtr, end);
             Plaintext pt;
             encoder->encode(temp, pt);
             plain_data.push_back(pt);
-            curPtr += bfv_slot;
+            curPtr += slot_count;
+        }
+    }
+}
+
+BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, uint64_t *data, size_t len, BatchEncoder *encoder) {
+    this->len = len;
+    size_t slot_count = contex->slot_count; // TODO:: this slot_count use SEALcontext? BFVLongPlaintext contain it.
+    size_t count = len / slot_count;
+
+    if (len % slot_count) {
+        count++;
+    }
+    size_t i, j;
+    if (slot_count >= len) {
+        Plaintext pt;
+        encoder->encode(vector<uint64_t>(data, data + len), pt);
+        plain_data.push_back(pt);
+    } else {
+        uint64_t *curPtr = data, *endPtr = data + len, *end;
+        while (curPtr < endPtr) {
+            end = endPtr - curPtr > slot_count ? slot_count + curPtr : endPtr;
+            slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
+            bfv_matrix temp(curPtr, end);
+            Plaintext pt;
+            encoder->encode(temp, pt);
+            plain_data.push_back(pt);
+            curPtr += slot_count;
         }
     }
 }
@@ -78,7 +102,7 @@ BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncode
 bfv_matrix BFVLongPlaintext::decode(BFVparm *contex, BatchEncoder *encoder) const {
     bfv_matrix data(len);
     size_t size = plain_data.size();
-    size_t solut_cout = contex->bfv_slot_count;
+    size_t solut_cout = contex->slot_count;
     for (size_t i = 0; i < size; i++) {
         bfv_matrix temp;
         encoder->decode(plain_data[i], temp);

@@ -25,9 +25,9 @@ int main() {
     }
     std::cout << "\n";
 
-    BFVparm *bfv_parm = new BFVparm(sci::ALICE, 8192, {54, 54, 55, 55}, default_prime_mod.at(29));
+    BFVparm *bfv_parm = new BFVparm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
 
-    BFVKey *alice = new BFVKey(bfv_parm->party, bfv_parm->context);
+    BFVKey *alice = new BFVKey(sci::ALICE, bfv_parm->context);
 
     sci::OTPack *otpack;
     sci::IOPack *iopack;
@@ -45,6 +45,15 @@ int main() {
     FixArray input = fix->input(sci::PUBLIC, size, x, true, 64, 13);
 
     print_fix(input);
+
+    delete random_share;
+    delete bfv_parm;
+    delete alice;
+    delete otpack;
+    delete iopack;
+    delete mill;
+    delete x;
+    delete fix;
 }
 
 // const size_t bfv_poly_modulus_degree = 8192;
