@@ -31,8 +31,8 @@ public:
     int size = 0;             // size of array
     uint64_t *data = nullptr; // data (ell-bit integers)
     bool signed_;             // signed? (1: signed; 0: unsigned)
-    int ell;                  // bitlength
-    int s;                    // scale
+    int ell = DEFAULT_ELL;    // bitlength
+    int s = DEFAULT_BITWIDTH; // scale
 
     FixArray(){};
 

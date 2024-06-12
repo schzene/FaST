@@ -1345,9 +1345,6 @@ FixArray FixOp::abs(const FixArray &x) {
 }
 
 void FixOp::send_fix_array(const FixArray &fix_array) {
-    // bool signed_;             // signed? (1: signed; 0: unsigned)
-    // int ell;                  // bitlength
-    // int s;                    // scale
     iopack->io->send_data(&fix_array.party, sizeof(int));
     if (fix_array.party == sci::PUBLIC) {
         iopack->io->send_data(&fix_array.size, sizeof(int));
@@ -1362,7 +1359,7 @@ void FixOp::recv_fix_array(FixArray &fix_array) {
     iopack->io->recv_data(&fix_array.party, sizeof(int));
     if (fix_array.party == sci::PUBLIC) {
         iopack->io->recv_data(&fix_array.size, sizeof(int));
-        if (fix_array.data = nullptr) {
+        if (fix_array.data == nullptr) {
             fix_array.data = new uint64_t[fix_array.size];
         }
         iopack->io->recv_data(fix_array.data, sizeof(uint64_t) * fix_array.size);

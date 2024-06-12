@@ -3,4 +3,5 @@
 #include <protocols/attention.h>
 #include <protocols/ffn.h>
 #include <protocols/layer-norm.h>
+#include <protocols/fixed-layer-norm.h>
 #endif

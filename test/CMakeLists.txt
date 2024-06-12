@@ -10,5 +10,6 @@ macro(add_test _name)
 endmacro()
 
 add_test(bfv_add)
+add_test(fixarray_comm)
 add_test(mat)
 add_test(seal_parm)

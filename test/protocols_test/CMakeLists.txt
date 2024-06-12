@@ -10,5 +10,5 @@ add_pro_test(attn)
 add_pro_test(layer-norm)
 add_pro_test(ffn)
 add_pro_test(transformer)
-
+add_pro_test(bfv_ln)
 

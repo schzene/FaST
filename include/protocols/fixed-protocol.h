@@ -13,14 +13,14 @@ class FixedProtocol {
 protected:
     BFVKey *party;
     BFVParm *parm;
-    FixOp *fix_party;
+    FixOp *fixop;
     FixOp *fix_public;
 
 public:
     FixedProtocol(BFVKey *party_, BFVParm *parm_,
-                  FixOp *fix_party_, FixOp *fix_public_) : party(party_), parm(parm_),
-                                                      fix_party(fix_party_), fix_public(fix_public_) {
-        assert(party->party == fix_party->party);
+                  FixOp *fixop_, FixOp *fix_public_) : party(party_), parm(parm_),
+                                                      fixop(fixop_), fix_public(fix_public_) {
+        assert(party->party == fixop->party);
     }
     ~FixedProtocol() {}
 };
