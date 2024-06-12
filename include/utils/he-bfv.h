@@ -38,7 +38,9 @@ const map<int32_t, uint64_t> default_prime_mod{
 // const int32_t bitlength = 29;
 // const uint64_t bfv_plain_mod = default_prime_mod.at(bitlength);
 
-class BFVparm {
+void print_parameters(std::shared_ptr<seal::SEALContext> context);
+
+class BFVParm {
 public:
     size_t poly_modulus_degree;
     size_t slot_count;
@@ -46,8 +48,10 @@ public:
     // int32_t bitlength;
     uint64_t plain_mod;
     SEALContext *context;
-    BFVparm(size_t poly_modulus_degree, vector<int> coeff_bit_sizes, uint64_t plain_mod);
-    ~BFVparm() {}
+    BatchEncoder *encoder;
+    Evaluator *evaluator;
+    BFVParm(size_t poly_modulus_degree, vector<int> coeff_bit_sizes, uint64_t plain_mod);
+    ~BFVParm();
 };
 
 class bfv_lenth_error : public std::exception {
@@ -63,14 +67,13 @@ public:
 class BFVKey {
 public:
     int party;
-    SEALContext *context;
-    KeyGenerator *keygen;
+    BFVParm *parm;
     Encryptor *encryptor;
     Decryptor *decryptor;
     PublicKey public_key;
     RelinKeys relin_keys;
 
-    BFVKey(int party_, SEALContext *context_);
+    BFVKey(int party_, BFVParm *parm_);
     ~BFVKey();
 };
 
@@ -80,10 +83,10 @@ public:
     size_t len;
     BFVLongPlaintext() {}
     BFVLongPlaintext(const Plaintext &pt);
-    BFVLongPlaintext(BFVparm *contex, uint64_t data, BatchEncoder *encoder); // TODO: len=1
-    BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncoder *encoder);
-    BFVLongPlaintext(BFVparm *contex, uint64_t *data, size_t len, BatchEncoder *encoder);
-    bfv_matrix decode(BFVparm *contex, BatchEncoder *encoder) const;
+    BFVLongPlaintext(BFVParm *contex, uint64_t data); // TODO: len=1
+    BFVLongPlaintext(BFVParm *contex, bfv_matrix data);
+    BFVLongPlaintext(BFVParm *contex, uint64_t *data, size_t len);
+    bfv_matrix decode(BFVParm *contex) const;
 
     inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < plain_data.size(); i++) {
@@ -98,7 +101,7 @@ public:
     size_t len;
     BFVLongCiphertext() {}
     BFVLongCiphertext(const Ciphertext &ct);
-    BFVLongCiphertext(uint64_t data, BFVKey *party, BatchEncoder *encoder); // TODO: len =1
+    BFVLongCiphertext(BFVParm *contex, uint64_t data, BFVKey *party); // TODO: len =1
     BFVLongCiphertext(const BFVLongPlaintext &lpt, BFVKey *party);
     BFVLongPlaintext decrypt(BFVKey *party) const;
 
@@ -120,54 +123,6 @@ public:
     inline const parms_id_type parms_id() const noexcept {
         return cipher_data[0].parms_id();
     }
-
-    inline void print_parameters(std::shared_ptr<seal::SEALContext> context) {
-        // Verify parameters
-        if (!context) {
-            throw std::invalid_argument("context is not set");
-        }
-        auto &context_data = *context->key_context_data();
-
-        /*
-        Which scheme are we using?
-        */
-        std::string scheme_name;
-        switch (context_data.parms().scheme()) {
-        case seal::scheme_type::bfv:
-            scheme_name = "BFV";
-            break;
-        case seal::scheme_type::ckks:
-            scheme_name = "CKKS";
-            break;
-        default:
-            throw std::invalid_argument("unsupported scheme");
-        }
-        std::cout << "/" << std::endl;
-        std::cout << "| Encryption parameters :" << std::endl;
-        std::cout << "|   scheme: " << scheme_name << std::endl;
-        std::cout << "|   poly_modulus_degree: " << context_data.parms().poly_modulus_degree() << std::endl;
-
-        /*
-        Print the size of the true (product) coefficient modulus.
-        */
-        std::cout << "|   coeff_modulus size: ";
-        std::cout << context_data.total_coeff_modulus_bit_count() << " (";
-        auto coeff_modulus = context_data.parms().coeff_modulus();
-        std::size_t coeff_mod_count = coeff_modulus.size();
-        for (std::size_t i = 0; i < coeff_mod_count - 1; i++) {
-            std::cout << coeff_modulus[i].bit_count() << " + ";
-        }
-        std::cout << coeff_modulus.back().bit_count();
-        std::cout << ") bits" << std::endl;
-
-        /*
-        For the BFV scheme print the plain_modulus parameter.
-        */
-        if (context_data.parms().scheme() == seal::scheme_type::bfv) {
-            std::cout << "|   plain_modulus: " << context_data.parms().plain_modulus().value() << std::endl;
-        }
-
-        std::cout << "\\" << std::endl;
-    }
 };
+
 #endif // FAST_HE_BFV_TOOLS_H__

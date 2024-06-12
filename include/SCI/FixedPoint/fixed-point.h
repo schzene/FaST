@@ -1,14 +1,17 @@
 #ifndef FIXED_POINT_H__
 #define FIXED_POINT_H__
-#include "OT/emp-ot.h"
-#include "Millionaire/millionaire_with_equality.h"
-#include "Millionaire/equality.h"
 #include "BuildingBlocks/aux-protocols.h"
-#include "BuildingBlocks/value-extension.h"
-#include "BuildingBlocks/truncation.h"
 #include "BuildingBlocks/linear-ot.h"
-#include "bool-data.h"
+#include "BuildingBlocks/truncation.h"
+#include "BuildingBlocks/value-extension.h"
 #include "Math/math-functions.h"
+#include "Millionaire/equality.h"
+#include "Millionaire/millionaire_with_equality.h"
+#include "OT/emp-ot.h"
+#include "bool-data.h"
+
+#define DEFAULT_BITWIDTH 13
+#define DEFAULT_ELL 64
 
 #define print_fix(vec)                                         \
     {                                                          \
@@ -22,8 +25,7 @@
 // signed_ denotes the signedness, ell is the bitlength, and s is the scale of the underlying fixed-point array
 // If s is set to 0, the FixArray will behave like an IntegerArray
 
-class FixArray
-{
+class FixArray {
 public:
     int party = sci::PUBLIC;
     int size = 0;             // size of array
@@ -34,8 +36,7 @@ public:
 
     FixArray(){};
 
-    FixArray(int party_, int sz, bool signed__, int ell_, int s_ = 0)
-    {
+    FixArray(int party_, int sz, bool signed__ = true, int ell_ = DEFAULT_ELL, int s_ = DEFAULT_BITWIDTH) {
         assert(party_ == sci::PUBLIC || party_ == sci::ALICE || party_ == sci::BOB);
         assert(sz > 0);
         assert(ell_ <= 64 && ell_ > 0);
@@ -48,8 +49,7 @@ public:
     }
 
     // copy constructor
-    FixArray(const FixArray &other)
-    {
+    FixArray(const FixArray &other) {
         this->party = other.party;
         this->size = other.size;
         this->signed_ = other.signed_;
@@ -60,8 +60,7 @@ public:
     }
 
     // move constructor
-    FixArray(FixArray &&other) noexcept
-    {
+    FixArray(FixArray &&other) noexcept {
         this->party = other.party;
         this->size = other.size;
         this->signed_ = other.signed_;
@@ -71,14 +70,13 @@ public:
         other.data = nullptr;
     }
 
-    ~FixArray() { delete[] data; }
+    ~FixArray() { if (data != nullptr) delete[] data; }
 
     template <class T>
     std::vector<T> get_native_type();
 
     // copy assignment
-    FixArray &operator=(const FixArray &other)
-    {
+    FixArray &operator=(const FixArray &other) {
         if (this == &other)
             return *this;
 
@@ -94,8 +92,7 @@ public:
     }
 
     // move assignment
-    FixArray &operator=(FixArray &&other) noexcept
-    {
+    FixArray &operator=(FixArray &&other) noexcept {
         if (this == &other)
             return *this;
 
@@ -120,8 +117,7 @@ std::ostream &operator<<(std::ostream &os, FixArray &other);
 
 FixArray concat(const vector<FixArray> &x);
 
-class FixOp
-{
+class FixOp {
 
 public:
     int party;
@@ -136,8 +132,7 @@ public:
     BoolOp *bool_op;
     FixOp *fix;
 
-    FixOp(int party, sci::IOPack *iopack, sci::OTPack *otpack)
-    {
+    FixOp(int party, sci::IOPack *iopack, sci::OTPack *otpack) {
         this->party = party;
         this->iopack = iopack;
         this->otpack = otpack;
@@ -151,8 +146,7 @@ public:
         this->fix = this;
     }
 
-    ~FixOp()
-    {
+    ~FixOp() {
         delete aux;
         delete eq;
         delete mill_eq;
@@ -166,9 +160,9 @@ public:
     // party_ denotes which party provides the input data_ and the data_ provided by the other party is ignored. If party_ is PUBLIC, then the data_ provided by both parties must be identical.
     // sz is the size of the returned FixArray and the uint64_t array pointed by data_
     // signed__, ell_, and s_ are the signedness, bitlength and scale of the input, respectively
-    FixArray input(int party_, int sz, uint64_t *data_, bool signed__, int ell_, int s_ = 0);
+    FixArray input(int party_, int sz, const uint64_t *data_, bool signed__ = true, int ell_ = DEFAULT_ELL, int s_ = DEFAULT_BITWIDTH);
     // same as the above function, except that it replicates data_ in all sz positions of the returned FixArray
-    FixArray input(int party_, int sz, uint64_t data_, bool signed__, int ell_, int s_ = 0);
+    FixArray input(int party_, int sz, uint64_t data_, bool signed__ = true, int ell_ = DEFAULT_ELL, int s_ = DEFAULT_BITWIDTH);
 
     // output function: returns the secret array underlying x in the form of a PUBLIC FixArray
     // party_ denotes which party will receive the output. If party_ is PUBLIC, both parties receive the output.
@@ -244,13 +238,11 @@ public:
     // same as above mul functions except ell is a constant depending on bitlengths of inputs
     //// ell = sum of bitlengths of x and y (x.ell + y.ell)
     inline FixArray mul(const FixArray &x, const FixArray &y,
-                        uint8_t *msb_x = nullptr, uint8_t *msb_y = nullptr)
-    {
+                        uint8_t *msb_x = nullptr, uint8_t *msb_y = nullptr) {
         return mul(x, y, x.ell + y.ell, msb_x, msb_y);
     }
     //// ell = bitlength of x (x.ell)
-    inline FixArray mul(const FixArray &x, uint64_t y, uint8_t *msb_x = nullptr)
-    {
+    inline FixArray mul(const FixArray &x, uint64_t y, uint8_t *msb_x = nullptr) {
         return mul(x, y, x.ell, msb_x);
     }
 
@@ -286,15 +278,14 @@ public:
     // x must be secret shared FixArray
     // s < bitlength of x (x.ell) and s >= 0
     // wrap_x_s is an optional parameter that points to an array holding boolean shares of the wrap-bit of lower s bits of x[i]'s (i.e., wrap_x_s[i] = 1{ share(1, x[i]) mod 2^{s} + share(2, x[i]) mod 2^{s} >= 2^{s} }). If wrap_x_s is provided, this operation is cheaper
-    FixArray truncate_reduce(const FixArray &x, int s,
+    FixArray truncate_reduce(const FixArray &x, int s = DEFAULT_BITWIDTH,
                              uint8_t *wrap_x_s = nullptr);
 
     // Round Nearest: returns (x[i] + 2^(s-1)) >> s mod 2^{x.ell - s}
     // Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of x
     // x must be secret shared FixArray
     // s < bitlength of x (x.ell) and s >= 0
-    FixArray round_nearest(const FixArray &x, int s)
-    {
+    FixArray round_nearest(const FixArray &x, int s) {
         FixArray y = fix->add(x, 1ULL << (s - 1));
         return truncate_reduce(y, s);
     }
@@ -330,8 +321,7 @@ public:
 
     // Most Significant Bit: returns MSB of x in the form of BoolArray
     // x must be secret-shared
-    BoolArray MSB(const FixArray &x)
-    {
+    BoolArray MSB(const FixArray &x) {
         assert(x.party != sci::PUBLIC);
         return fix->LT(x, 0);
     }
@@ -377,8 +367,7 @@ public:
                  bool signed_, int l_out, int s_out, int l_in);
     // same as above LUT function except l_in is same as x.ell
     inline FixArray LUT(const std::vector<uint64_t> &spec_vec, const FixArray &x,
-                        bool signed_, int l_out, int s_out)
-    {
+                        bool signed_, int l_out, int s_out) {
         return this->LUT(spec_vec, x, signed_, l_out, s_out, x.ell);
     }
 
@@ -423,5 +412,9 @@ public:
     FixArray poly1(const FixArray &x);
 
     FixArray abs(const FixArray &x);
+
+    void send_fix_array(const FixArray &fix_array);
+
+    void recv_fix_array(FixArray &fix_array);
 };
 #endif

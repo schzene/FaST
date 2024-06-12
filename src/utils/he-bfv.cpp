@@ -1,32 +1,91 @@
 #include "he-bfv.h"
 
-BFVparm::BFVparm(size_t poly_modulus_degree, vector<int> coeff_bit_sizes, uint64_t plain_mod) {
-    this->poly_modulus_degree = poly_modulus_degree;
-    this->slot_count = poly_modulus_degree;
-    this->plain_mod = plain_mod;
+void print_parameters(std::shared_ptr<seal::SEALContext> context) {
+    // Verify parameters
+    if (!context) {
+        throw std::invalid_argument("context is not set");
+    }
+    auto &context_data = *context->key_context_data();
+
+    /*
+    Which scheme are we using?
+    */
+    std::string scheme_name;
+    switch (context_data.parms().scheme()) {
+    case seal::scheme_type::bfv:
+        scheme_name = "BFV";
+        break;
+    case seal::scheme_type::ckks:
+        scheme_name = "CKKS";
+        break;
+    default:
+        throw std::invalid_argument("unsupported scheme");
+    }
+    std::cout << "/" << std::endl;
+    std::cout << "| Encryption parameters :" << std::endl;
+    std::cout << "|   scheme: " << scheme_name << std::endl;
+    std::cout << "|   poly_modulus_degree: " << context_data.parms().poly_modulus_degree() << std::endl;
+
+    /*
+    Print the size of the true (product) coefficient modulus.
+    */
+    std::cout << "|   coeff_modulus size: ";
+    std::cout << context_data.total_coeff_modulus_bit_count() << " (";
+    auto coeff_modulus = context_data.parms().coeff_modulus();
+    std::size_t coeff_mod_count = coeff_modulus.size();
+    for (std::size_t i = 0; i < coeff_mod_count - 1; i++) {
+        std::cout << coeff_modulus[i].bit_count() << " + ";
+    }
+    std::cout << coeff_modulus.back().bit_count();
+    std::cout << ") bits" << std::endl;
+
+    /*
+    For the BFV scheme print the plain_modulus parameter.
+    */
+    if (context_data.parms().scheme() == seal::scheme_type::bfv) {
+        std::cout << "|   plain_modulus: " << context_data.parms().plain_modulus().value() << std::endl;
+    }
+
+    std::cout << "\\" << std::endl;
+}
+
+BFVParm::BFVParm(size_t poly_modulus_degree_,
+                 vector<int> coeff_bit_sizes_,
+                 uint64_t plain_mod_) : poly_modulus_degree(poly_modulus_degree_),
+                                        slot_count(poly_modulus_degree_),
+                                        coeff_bit_sizes(coeff_bit_sizes_),
+                                        plain_mod(plain_mod_) {
     // Generate keys
     EncryptionParameters parms(scheme_type::bfv);
 
     parms.set_poly_modulus_degree(poly_modulus_degree);
     parms.set_coeff_modulus(
-        CoeffModulus::Create(poly_modulus_degree, coeff_bit_sizes));
+        CoeffModulus::Create(poly_modulus_degree, coeff_bit_sizes_));
     parms.set_plain_modulus(plain_mod);
 
-    this->context = new SEALContext(parms, true, seal::sec_level_type::tc128);
+    context = new SEALContext(parms, true, seal::sec_level_type::tc128);
+    encoder = new BatchEncoder(*context);
+    evaluator = new Evaluator(*context);
 }
 
-BFVKey::BFVKey(int party_, SEALContext *context_) : party(party_), context(context_) {
+BFVParm::~BFVParm() {
+    delete context;
+    delete encoder;
+    delete evaluator;
+}
+
+BFVKey::BFVKey(int party_, BFVParm *parm_) : party(party_), parm(parm_) {
     assert(party == sci::ALICE || party == sci::BOB);
 
-    keygen = new KeyGenerator(*context);
+    KeyGenerator *keygen = new KeyGenerator(*(parm->context));
     keygen->create_public_key(public_key);
     keygen->create_relin_keys(relin_keys);
-    encryptor = new Encryptor(*context, public_key);
-    decryptor = new Decryptor(*context, keygen->secret_key());
+    encryptor = new Encryptor(*(parm->context), public_key);
+    decryptor = new Decryptor(*(parm->context), keygen->secret_key());
+    delete keygen;
 }
 
 BFVKey::~BFVKey() {
-    delete keygen;
     delete encryptor;
     delete decryptor;
 }
@@ -36,16 +95,16 @@ BFVLongPlaintext::BFVLongPlaintext(const Plaintext &pt) {
     plain_data.push_back(pt);
 }
 
-BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, uint64_t data, BatchEncoder *encoder) {
+BFVLongPlaintext::BFVLongPlaintext(BFVParm *contex, uint64_t data) {
     // TODO value len =1, use the BFV batchencoder to encode the palaintext
     len = 1;
     Plaintext pt;
     vector<uint64_t> temp(contex->slot_count, data);
-    encoder->encode(temp, pt);
+    contex->encoder->encode(temp, pt);
     plain_data.push_back(pt);
 }
 
-BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncoder *encoder) {
+BFVLongPlaintext::BFVLongPlaintext(BFVParm *contex, bfv_matrix data) {
     len = data.size();
     size_t slot_count = contex->slot_count; // TODO:: this slot_count use SEALcontext? BFVLongPlaintext contain it.
     size_t count = len / slot_count;
@@ -56,7 +115,7 @@ BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncode
     size_t i, j;
     if (slot_count >= len) {
         Plaintext pt;
-        encoder->encode(data, pt);
+        contex->encoder->encode(data, pt);
         plain_data.push_back(pt);
     } else {
         bfv_matrix::iterator curPtr = data.begin(), endPtr = data.end(), end;
@@ -65,14 +124,14 @@ BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, bfv_matrix data, BatchEncode
             slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
             bfv_matrix temp(curPtr, end);
             Plaintext pt;
-            encoder->encode(temp, pt);
+            contex->encoder->encode(temp, pt);
             plain_data.push_back(pt);
             curPtr += slot_count;
         }
     }
 }
 
-BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, uint64_t *data, size_t len, BatchEncoder *encoder) {
+BFVLongPlaintext::BFVLongPlaintext(BFVParm *contex, uint64_t *data, size_t len) {
     this->len = len;
     size_t slot_count = contex->slot_count; // TODO:: this slot_count use SEALcontext? BFVLongPlaintext contain it.
     size_t count = len / slot_count;
@@ -83,7 +142,7 @@ BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, uint64_t *data, size_t len, 
     size_t i, j;
     if (slot_count >= len) {
         Plaintext pt;
-        encoder->encode(vector<uint64_t>(data, data + len), pt);
+        contex->encoder->encode(vector<uint64_t>(data, data + len), pt);
         plain_data.push_back(pt);
     } else {
         uint64_t *curPtr = data, *endPtr = data + len, *end;
@@ -92,20 +151,20 @@ BFVLongPlaintext::BFVLongPlaintext(BFVparm *contex, uint64_t *data, size_t len, 
             slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
             bfv_matrix temp(curPtr, end);
             Plaintext pt;
-            encoder->encode(temp, pt);
+            contex->encoder->encode(temp, pt);
             plain_data.push_back(pt);
             curPtr += slot_count;
         }
     }
 }
 
-bfv_matrix BFVLongPlaintext::decode(BFVparm *contex, BatchEncoder *encoder) const {
+bfv_matrix BFVLongPlaintext::decode(BFVParm *contex) const {
     bfv_matrix data(len);
     size_t size = plain_data.size();
     size_t solut_cout = contex->slot_count;
     for (size_t i = 0; i < size; i++) {
         bfv_matrix temp;
-        encoder->decode(plain_data[i], temp);
+        contex->encoder->decode(plain_data[i], temp);
         if (i < size - 1) {
             copy(temp.begin(), temp.end(), data.begin() + i * solut_cout);
         } else {
@@ -122,12 +181,12 @@ BFVLongCiphertext::BFVLongCiphertext(const Ciphertext &ct) {
     cipher_data.push_back(ct);
 }
 
-BFVLongCiphertext::BFVLongCiphertext(uint64_t data, BFVKey *party, BatchEncoder *encoder) {
+BFVLongCiphertext::BFVLongCiphertext(BFVParm *contex, uint64_t data, BFVKey *party) {
     // TODO:
     len = 1;
     Plaintext pt;
-    vector<uint64_t> temp = {data};
-    encoder->encode(temp, pt);
+    vector<uint64_t> temp(contex->slot_count, data);
+    contex->encoder->encode(temp, pt);
     Ciphertext ct;
     party->encryptor->encrypt(pt, ct);
     cipher_data.push_back(ct);
