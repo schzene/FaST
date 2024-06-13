@@ -14,7 +14,7 @@ using std::vector;
 matrix matmul(const matrix &mat1, const matrix &mat2,
               size_t dim1, size_t dim2, size_t dim3, bool trans = false);
 void random_mat(matrix &mat, double min = -1., double max = 1., bool binomial = false);
-void random_bfv_mat(bfv_matrix &mat);
+void random_bfv_mat(bfv_matrix &mat, int bw = DEFAULT_BITWIDTH);
 matrix zero_sum(size_t row, size_t column);
 void load_mat(matrix &mat, const char *path);
 void normalization(matrix &A, size_t row, size_t column);

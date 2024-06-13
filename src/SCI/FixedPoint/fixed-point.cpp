@@ -1353,9 +1353,10 @@ void FixOp::send_fix_array(const FixArray &fix_array) {
         iopack->io->send_data(&fix_array.ell, sizeof(int));
         iopack->io->send_data(&fix_array.s, sizeof(int));
     }
+    iopack->io->flush();
 }
 
-void FixOp::recv_fix_array(FixArray &fix_array) {
+void FixOp::recv_fix_array(FixArray &fix_array) {  
     iopack->io->recv_data(&fix_array.party, sizeof(int));
     if (fix_array.party == sci::PUBLIC) {
         iopack->io->recv_data(&fix_array.size, sizeof(int));
@@ -1367,4 +1368,5 @@ void FixOp::recv_fix_array(FixArray &fix_array) {
         iopack->io->recv_data(&fix_array.ell, sizeof(int));
         iopack->io->recv_data(&fix_array.s, sizeof(int));
     }
+    iopack->io->flush();
 }

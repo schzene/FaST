@@ -17,7 +17,6 @@ int main(int argc, const char **argv) {
         sci::OTPack *otpack = new OTPack(iopack, party_);
         FixOp *fix_party = new FixOp(party_, iopack, otpack);
         FixOp *fix_public = new FixOp(sci::PUBLIC, iopack, otpack);
-        printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
         bfv_matrix input(batch_size * d_module);
         random_bfv_mat(input);
         FixedLayerNorm *ln = new FixedLayerNorm(party, bfv_parm, fix_party, fix_public);
@@ -31,6 +30,7 @@ int main(int argc, const char **argv) {
             BFVLongCiphertext attn_s_b(attn_plain, party);
             BFVLongCiphertext::send(iopack->io, &attn_s_b);
         }
+        printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
         INIT_TIMER;
         START_TIMER;
         BFVLongCiphertext result = ln->forward(attn_secret_b, input);
@@ -55,6 +55,8 @@ int main(int argc, const char **argv) {
         delete iopack;
         delete party;
         delete bfv_parm;
+    } else {
+        std::cout << "No party input\n";
     }
     return 0;
 }

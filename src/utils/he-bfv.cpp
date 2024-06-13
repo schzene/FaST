@@ -422,6 +422,7 @@ void BFVLongCiphertext::send(sci::NetIO *io, BFVLongCiphertext *lct) {
         io->send_data(&ct_size, sizeof(uint64_t));
         io->send_data(ct_ser.c_str(), ct_ser.size());
     }
+    io->flush();
 }
 
 void BFVLongCiphertext::recv(sci::NetIO *io, BFVLongCiphertext *lct, SEALContext *context) {
@@ -440,4 +441,5 @@ void BFVLongCiphertext::recv(sci::NetIO *io, BFVLongCiphertext *lct, SEALContext
         lct->cipher_data.push_back(cct);
         delete[] c_enc_result;
     }
+    io->flush();
 }
