@@ -81,11 +81,8 @@ BFVLongCiphertext FixedLayerNorm::forward(const BFVLongCiphertext &attn, const b
         bfv_matrix tmp1(batch_size * d_module);
         for (i = 0; i < batch_size; i++) {
             for (j = 0; j < d_module; j++) {
-                double tmp0 = (fix_xgb.data[i * d_module + j] - mu_gb.data[i]) * ka;
-                if (i == 0 && j == 0) {
-                    std::cout << tmp0 << "\n";
-                }
-                // tmp1[i * d_module + j] = sci::neg_mod(tmp0, 1ULL << DEFAULT_BITWIDTH);
+                int64_t tmp0 = (fix_xgb.data[i * d_module + j] - mu_gb.data[i]) * int64_t(ka * (1ULL << DEFAULT_BITWIDTH)) >> DEFAULT_BITWIDTH;
+                tmp1[i * d_module + j] = sci::neg_mod(tmp0, 1ULL << DEFAULT_BITWIDTH);
                 double tmp2 = ka * double(sigma_gb.data[i]) / (1ULL << DEFAULT_BITWIDTH), tmp3 = 1 / tmp2;
                 div_sigma_gb[i * d_module + j] = sci::neg_mod(int64_t(tmp3 * (1ULL << DEFAULT_BITWIDTH)), DEFAULT_BITWIDTH);
             }
