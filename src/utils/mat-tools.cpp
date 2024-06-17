@@ -61,7 +61,7 @@ void random_bfv_mat(bfv_matrix &mat, int bw) {
     size_t size = mat.size();
     uint64_t *rand_data = new uint64_t[size];
     prg.random_data(rand_data, size * sizeof(uint64_t));
-    std::cout << mask << "\n";
+    uint64_t mask = bw >= 64 ? -1 : (1ULL << bw - 1);
     for (size_t i = 0; i < size; i++) {
         rand_data[i] &= mask;
         mat[i] = rand_data[i];

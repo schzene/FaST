@@ -10,7 +10,7 @@
 #include "OT/emp-ot.h"
 #include "bool-data.h"
 
-#define DEFAULT_BITWIDTH 13
+#define DEFAULT_BITWIDTH 37
 #define DEFAULT_ELL 64
 
 #define print_fix(vec)                                         \
