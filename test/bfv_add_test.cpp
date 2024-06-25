@@ -11,11 +11,11 @@ int main() {
     uint64_t *random_share = new uint64_t[length];
     sci::PRG128 prg;
     prg.random_data(random_share, length * sizeof(uint64_t));
-    for (int i = 0; i < 10; i++) {
-        std::cout << random_share[i] << " ";
-    }
+    // for (int i = 0; i < 10; i++) {
+    //     std::cout << random_share[i] << " ";
+    // }
 
-    std::cout << "\n";
+    // std::cout << "\n";
     std::cout << "mask_x:" << mask_x << " \n";
     for (int i = 0; i < length; i++) {
         random_share[i] &= mask_x;
@@ -42,7 +42,7 @@ int main() {
     }
     std::cout << "\n";
     FixOp *fix = new FixOp(sci::PUBLIC, iopack, otpack);
-    FixArray input = fix->input(sci::PUBLIC, size, x, true, 64, 13);
+    FixArray input = fix->input(sci::PUBLIC, size, random_share, true, 64, 13);
 
     print_fix(input);
 

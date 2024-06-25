@@ -192,6 +192,37 @@ BFVLongCiphertext::BFVLongCiphertext(BFVParm *contex, uint64_t data, BFVKey *par
     cipher_data.push_back(ct);
 }
 
+BFVLongCiphertext::BFVLongCiphertext(BFVParm *contex, uint64_t *data, size_t len, BFVKey *party) {
+    this->len = len;
+    size_t slot_count = contex->slot_count; // TODO:: this slot_count use SEALcontext? BFVLongPlaintext contain it.
+    size_t count = len / slot_count;
+
+    if (len % slot_count) {
+        count++;
+    }
+    size_t i, j;
+    if (slot_count >= len) {
+        Plaintext pt;
+        Ciphertext ct;
+        contex->encoder->encode(vector<uint64_t>(data, data + len), pt);
+        party->encryptor->encrypt(pt, ct);
+        cipher_data.push_back(ct);
+    } else {
+        uint64_t *curPtr = data, *endPtr = data + len, *end;
+        while (curPtr < endPtr) {
+            end = endPtr - curPtr > slot_count ? slot_count + curPtr : endPtr;
+            slot_count = endPtr - curPtr > slot_count ? slot_count : endPtr - curPtr;
+            bfv_matrix temp(curPtr, end);
+            Plaintext pt;
+            Ciphertext ct;
+            contex->encoder->encode(temp, pt);
+            party->encryptor->encrypt(pt, ct);
+            cipher_data.push_back(ct);
+            curPtr += slot_count;
+        }
+    }
+}
+
 BFVLongCiphertext::BFVLongCiphertext(const BFVLongPlaintext &lpt, BFVKey *party) {
     len = lpt.len;
     for (Plaintext pt : lpt.plain_data) {

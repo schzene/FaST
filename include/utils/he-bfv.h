@@ -102,6 +102,7 @@ public:
     BFVLongCiphertext() {}
     BFVLongCiphertext(const Ciphertext &ct);
     BFVLongCiphertext(BFVParm *contex, uint64_t data, BFVKey *party); // TODO: len =1
+    BFVLongCiphertext(BFVParm *contex, uint64_t *data, size_t len, BFVKey *party);
     BFVLongCiphertext(const BFVLongPlaintext &lpt, BFVKey *party);
     BFVLongPlaintext decrypt(BFVKey *party) const;
 
