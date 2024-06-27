@@ -1,6 +1,7 @@
 #ifndef FAST_FFN_H__
 #define FAST_FFN_H__
 #include "protocol.h"
+
 class FFN : public Protocol {
     LongCiphertext f3(const LongCiphertext &x1, const LongCiphertext &x2,
                       const LongCiphertext &x3);
@@ -16,4 +17,5 @@ public:
     ~FFN() {}
     LongCiphertext forward(const LongCiphertext &ln1);
 };
+
 #endif

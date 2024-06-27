@@ -8,21 +8,16 @@ class SecureAttention {
     Evaluator *evaluator;
 
 public:
-    SecureAttention(CKKSKey *alice_, CKKSKey *bob_,
-                    CKKSEncoder *encoder_, Evaluator *evaluator_) : alice(alice_),
-                                                                    bob(bob_),
-                                                                    encoder(encoder_),
-                                                                    evaluator(evaluator_) {}
+    SecureAttention(CKKSKey *alice_, CKKSKey *bob_, CKKSEncoder *encoder_,
+                    Evaluator *evaluator_)
+        : alice(alice_), bob(bob_), encoder(encoder_), evaluator(evaluator_) {}
 
     ~SecureAttention() {}
 
     void forward(const matrix &input) {
         size_t i, j;
-        matrix ra_WQa(d_module * d_k),
-            ra_WKa(d_module * d_k),
-            ra_WVa(d_module * d_k),
-            WQb(d_module * d_k),
-            WKb(d_module * d_k),
+        matrix ra_WQa(d_module * d_k), ra_WKa(d_module * d_k),
+            ra_WVa(d_module * d_k), WQb(d_module * d_k), WKb(d_module * d_k),
             WVb(d_module * d_k);
         random_mat(ra_WQa);
         random_mat(ra_WKa);
@@ -43,7 +38,8 @@ public:
         std::uniform_real_distribution<> dist(-1, 1);
         double ra = dist(gen);
 
-        matrix input_a(batch_size * d_module), input_b(batch_size * d_module), ra_xa(batch_size * d_module);
+        matrix input_a(batch_size * d_module), input_b(batch_size * d_module),
+            ra_xa(batch_size * d_module);
         random_mat(input_b, 0, 0.01);
         for (i = 0; i < batch_size * d_module; i++) {
             input_a[i] = input[i] - input_b[i];
@@ -60,19 +56,24 @@ public:
         auto ra_xa_WVa = matmul(input_a, ra_WVa, batch_size, d_module, d_k);
 
         LongCiphertext ra_secret_a(ra, alice, encoder);
-        // send H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a} to bob, where I = Q, K, V
+        // send H1 = {ra_xa_WIa, ra_xa, ra_WIa, [ra]_a} to bob, where I = Q, K,
+        // V
 
         /*
             bob: revice H1, and possess: x_b, W_b
-            1. compute: rxw_a + rx_a * w_b + rW_a * x_b + [r_a]_a * xw_b = [r_aI]_a , where I stands for  Q,K,V
-            2. genereat random num r_b, compute [r_aQ/r_b]_a, [r_aK/r_b]_a, [(r_b)^2]_b
+            1. compute: rxw_a + rx_a * w_b + rW_a * x_b + [r_a]_a * xw_b =
+           [r_aI]_a , where I stands for  Q,K,V
+            2. genereat random num r_b, compute [r_aQ/r_b]_a, [r_aK/r_b]_a,
+           [(r_b)^2]_b
         */
-        auto cal_raI_A = [](matrix input_b, matrix WIb, matrix ra_xa, matrix ra_WIa, matrix ra_xa_WIa,
-                            LongCiphertext ra_secret_a,
-                            CKKSKey *bob, CKKSEncoder *encoder, Evaluator *evaluator) {
+        auto cal_raI_A = [](matrix input_b, matrix WIb, matrix ra_xa,
+                            matrix ra_WIa, matrix ra_xa_WIa,
+                            LongCiphertext ra_secret_a, CKKSKey *bob,
+                            CKKSEncoder *encoder, Evaluator *evaluator) {
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
-            LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
+            LongCiphertext raI_secret_a =
+                ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
 
             matrix temp_raI(batch_size * d_k);
             auto temp_raI1 = matmul(ra_xa, WIb, batch_size, d_module, d_k);
@@ -80,16 +81,23 @@ public:
             for (size_t i = 0; i < batch_size * d_k; i++)
                 temp_raI[i] = ra_xa_WIa[i] + temp_raI1[i] + temp_raI2[i];
             LongPlaintext temp_raI_plain(temp_raI, encoder);
-            temp_raI_plain.mod_switch_to_inplace(raI_secret_a.parms_id(), evaluator);
+            temp_raI_plain.mod_switch_to_inplace(raI_secret_a.parms_id(),
+                                                 evaluator);
             raI_secret_a.add_plain_inplace(temp_raI_plain, evaluator);
             return raI_secret_a;
         };
         // [r_aQ]_A
-        LongCiphertext raQ_sec_a = cal_raI_A(input_b, WQb, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a, bob, encoder, evaluator);
+        LongCiphertext raQ_sec_a =
+            cal_raI_A(input_b, WQb, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a, bob,
+                      encoder, evaluator);
         // [r_aK]_A
-        LongCiphertext raK_sec_a = cal_raI_A(input_b, WKb, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a, bob, encoder, evaluator);
+        LongCiphertext raK_sec_a =
+            cal_raI_A(input_b, WKb, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a, bob,
+                      encoder, evaluator);
         // [r_aV]_A
-        LongCiphertext raV_sec_a = cal_raI_A(input_b, WVb, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a, bob, encoder, evaluator);
+        LongCiphertext raV_sec_a =
+            cal_raI_A(input_b, WVb, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a, bob,
+                      encoder, evaluator);
 #ifdef TEST1
         LongPlaintext raK_plain = raK_sec_a.decrypt(encoder, alice);
         auto raK = raK_plain.decode();
@@ -121,14 +129,16 @@ public:
             Q_div_rb1[i] /= sqrt_d_k;
             K_div_rb1[i] /= ra;
         }
-        auto temp_z = matmul(Q_div_rb1, K_div_rb1, batch_size, d_k, batch_size, true);
+        auto temp_z =
+            matmul(Q_div_rb1, K_div_rb1, batch_size, d_k, batch_size, true);
         for (size_t i = 0; i < batch_size * batch_size; i++) {
             negZa[i] = -negZa[i];
             eZa[i] = exp(eZa[i]);
         }
         normalization(temp_z, batch_size, batch_size);
         LongPlaintext z_plain(temp_z, encoder);
-        auto Zb_secret_b = rb1_square_secret_b.multiply_plain(z_plain, evaluator);
+        auto Zb_secret_b =
+            rb1_square_secret_b.multiply_plain(z_plain, evaluator);
 #ifdef TEST1
         auto Zb_plain = Zb_secret_b.decrypt(encoder, bob);
         auto Zb1 = Zb_plain.decode();
@@ -267,7 +277,8 @@ public:
 int main() {
     EncryptionParameters parms(scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
+    parms.set_coeff_modulus(
+        CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
     SEALContext *context = new SEALContext(parms);
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
@@ -276,7 +287,8 @@ int main() {
     CKKSKey *bob = new CKKSKey(2, context);
     matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
-    SecureAttention *sattn = new SecureAttention(alice, bob, encoder, evaluator);
+    SecureAttention *sattn =
+        new SecureAttention(alice, bob, encoder, evaluator);
     sattn->forward(input);
 
     /*matrix input1(8193);
@@ -297,10 +309,9 @@ int main() {
     }
     */
     // test multiply_plain.....pass
-    /*auto result_secret = input1_secret.multiply_plain(input2_plain, evaluator);
-    auto result_plain = result_secret.decrypt(encoder, alice);
-    auto result = result_plain.decode();
-    for (size_t i = 0; i < 8193; i++) {
+    /*auto result_secret = input1_secret.multiply_plain(input2_plain,
+    evaluator); auto result_plain = result_secret.decrypt(encoder, alice); auto
+    result = result_plain.decode(); for (size_t i = 0; i < 8193; i++) {
         result[i] -= (input1[i] * input2[i]);
         if (result[i] < 0) result[i] = -result[i];
     }*/

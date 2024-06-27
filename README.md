@@ -4,6 +4,14 @@ FaST is Fast and Secure Transformer model implement with C++, based on bert.
 
 # Build
 
+The following library must be installed before you build FaST:
+
+* OpenMP
+
+* OpenSSL
+
+* GMP
+
 You can build FaST using following commands:
 
 ```bash

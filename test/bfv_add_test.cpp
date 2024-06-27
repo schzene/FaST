@@ -25,7 +25,8 @@ int main() {
     }
     std::cout << "\n";
 
-    BFVParm *bfv_parm = new BFVParm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
+    BFVParm *bfv_parm =
+        new BFVParm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
 
     BFVKey *alice = new BFVKey(sci::ALICE, bfv_parm);
 
@@ -46,13 +47,13 @@ int main() {
 
     print_fix(input);
 
-    delete random_share;
+    delete[] random_share;
     delete bfv_parm;
     delete alice;
     delete otpack;
     delete iopack;
     delete mill;
-    delete x;
+    delete[] x;
     delete fix;
 }
 

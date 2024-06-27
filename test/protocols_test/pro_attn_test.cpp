@@ -23,7 +23,7 @@ int main(int argc, const char **argv) {
 
     printf("batch size:       %d\nd_module:         %d\nnumber of heads:  %d\n", batch_size, d_module, n_heads);
     matrix input(batch_size * d_module);
-    random_mat(input, 0, 0.01);
+    random_mat(input);
     io->num_rounds = 0;
     io_rev->num_rounds = 0;
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);

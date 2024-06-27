@@ -3,7 +3,6 @@
 bfv_matrix FixedAttention::forward(const bfv_matrix &input) const {
     size_t total_comm = 0;
     size_t i, j;
-    size_t d_k = d_module / n_heads;
     bfv_matrix WQ(d_module * d_k), WK(d_module * d_k), WV(d_module * d_k);
     random_bfv_mat(WQ);
     random_bfv_mat(WK);

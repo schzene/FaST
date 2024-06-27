@@ -9,13 +9,13 @@ class FixedAttention : public FixedProtocol {
 
 public:
     friend FixedMultiHeadAttention;
-    FixedAttention(BFVKey *party, BFVParm *parm,
-                   FixOp *fixop, FixOp *fix_public, int _head) : FixedProtocol(party, parm, fixop, fix_public),
-                                                                 head(_head) {}
+    FixedAttention(BFVKey *party, BFVParm *parm, FixOp *fixop,
+                   FixOp *fix_public, int _head)
+        : FixedProtocol(party, parm, fixop, fix_public), head(_head) {}
     ~FixedAttention() {}
     bfv_matrix forward(const bfv_matrix &input) const;
 };
 
-class FixedMultiHeadAttention {
-};
+class FixedMultiHeadAttention {};
+
 #endif

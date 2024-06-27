@@ -8,13 +8,12 @@ class SecureLayerNorm1 {
     Evaluator *evaluator;
 
 public:
-    SecureLayerNorm1(CKKSKey *alice_, CKKSKey *bob_,
-                     CKKSEncoder *encoder_, Evaluator *evaluator_) : alice(alice_),
-                                                                     bob(bob_),
-                                                                     encoder(encoder_),
-                                                                     evaluator(evaluator_) {}
+    SecureLayerNorm1(CKKSKey *alice_, CKKSKey *bob_, CKKSEncoder *encoder_,
+                     Evaluator *evaluator_)
+        : alice(alice_), bob(bob_), encoder(encoder_), evaluator(evaluator_) {}
 
-    void forward(LongCiphertext &attn_s, const matrix &input_a, const matrix &input_b) {
+    void forward(LongCiphertext &attn_s, const matrix &input_a,
+                 const matrix &input_b) {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<> dist(-1, 1);
@@ -29,18 +28,23 @@ public:
         LongPlaintext ha2_plain(ha2, encoder);
         LongCiphertext ha2_secret_a(ha2_plain, alice);
         LongCiphertext attn_ha2_b = attn_s.multiply_plain(ha2_plain, evaluator);
-        // send H1 = {hc1_xc, hc2_div_hc1_secret_a, hc2_secret_a, attn_hc2_s} to bob
+        // send H1 = {hc1_xc, hc2_div_hc1_secret_a, hc2_secret_a, attn_hc2_s} to
+        // bob
 
-        // bob receive H1, and get hc1_xc, hc2_div_hc1_secret_a, hc2_secret_a, attn_hc2
+        // bob receive H1, and get hc1_xc, hc2_div_hc1_secret_a, hc2_secret_a,
+        // attn_hc2
         auto attn_ha2_plain = attn_ha2_b.decrypt(bob);
         LongPlaintext input_b_plain(input_b, encoder);
-        LongCiphertext xha1_secret_a = ha2_secret_a.multiply_plain(input_b_plain, evaluator);
-        attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
+        LongCiphertext xha1_secret_a =
+            ha2_secret_a.multiply_plain(input_b_plain, evaluator);
+        attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(),
+                                             evaluator);
         xha1_secret_a.add_plain_inplace(attn_ha2_plain, evaluator);
 
         LongPlaintext ha1_xc_plain(ha1_xa, encoder);
         ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xc_plain, evaluator);
-        ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
+        ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(),
+                                                   evaluator);
         xha1_secret_a.add_inplace(ha2_div_ha1_secret_a, evaluator);
 
         double gb = dist(gen);
@@ -63,7 +67,8 @@ public:
         matrix tmp1(batch_size * d_module);
         for (i = 0; i < batch_size; i++) {
             for (j = 0; j < d_module; j++) {
-                tmp1[i * d_module + j] = (xgb[i * d_module + j] - mu_gb[i]) * ka;
+                tmp1[i * d_module + j] =
+                    (xgb[i * d_module + j] - mu_gb[i]) * ka;
                 div_sigma_gb[i * d_module + j] = 1 / (sigma_gb[i] * ka);
             }
         }
@@ -79,8 +84,10 @@ public:
         for (i = 0; i < batch_size * d_module; i++) {
             tmp1[i] *= gamma[i];
         }
-        LongPlaintext gamma_tmp1_plain(tmp1, encoder), beta_plain(beta, encoder);
-        LongCiphertext ln_secret_a = tmp2_secret_a.multiply_plain(gamma_tmp1_plain, evaluator);
+        LongPlaintext gamma_tmp1_plain(tmp1, encoder),
+            beta_plain(beta, encoder);
+        LongCiphertext ln_secret_a =
+            tmp2_secret_a.multiply_plain(gamma_tmp1_plain, evaluator);
         beta_plain.mod_switch_to_inplace(ln_secret_a.parms_id(), evaluator);
         ln_secret_a.add_plain_inplace(beta_plain, evaluator);
         std::cout << "Secure LayerNorm1 done.\n";
@@ -115,14 +122,16 @@ public:
 int main() {
     EncryptionParameters parms(scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
+    parms.set_coeff_modulus(
+        CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
     SEALContext *context = new SEALContext(parms);
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
 
-    matrix attn(batch_size * d_module), input_a(batch_size * d_module), input_b(batch_size * d_module);
+    matrix attn(batch_size * d_module), input_a(batch_size * d_module),
+        input_b(batch_size * d_module);
     random_mat(attn);
     random_mat(input_a);
     random_mat(input_b);
@@ -130,7 +139,8 @@ int main() {
     LongCiphertext attn_secret_s(attn_plain, bob);
 
     size_t i, j;
-    SecureLayerNorm1 *sec_ln1 = new SecureLayerNorm1(alice, bob, encoder, evaluator);
+    SecureLayerNorm1 *sec_ln1 =
+        new SecureLayerNorm1(alice, bob, encoder, evaluator);
     sec_ln1->forward(attn_secret_s, input_a, input_b);
 
     delete sec_ln1;

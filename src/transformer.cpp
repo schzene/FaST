@@ -1,7 +1,10 @@
 #include "transformer.h"
 
-Encoder::Encoder(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io, int _layer) : layer(_layer) {
-    this->multi_head_attn = new Multi_Head_Attention(party, encoder, evaluator, io, layer);
+Encoder::Encoder(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
+                 sci::NetIO *io, int _layer)
+    : layer(_layer) {
+    this->multi_head_attn =
+        new Multi_Head_Attention(party, encoder, evaluator, io, layer);
     this->ln1 = new LayerNorm(party, encoder, evaluator, io, layer);
     this->ffn = new FFN(party, encoder, evaluator, io, layer);
     this->ln2 = new LayerNorm(party, encoder, evaluator, io, layer);
@@ -20,7 +23,7 @@ matrix Encoder::forward(const matrix &input) {
     LongCiphertext output2 = ln1->forward(output1, input);
     LongCiphertext output3 = ffn->forward(output2);
     LongCiphertext output4 = ln2->forward(output3, input);
-    if (ln2->party->party == ALICE) {
+    if (ln2->party->party == sci::ALICE) {
         LongCiphertext out_sec_a;
         LongCiphertext::recv(ln2->io, &out_sec_a, ln2->party->context);
         LongPlaintext out_plain = out_sec_a.decrypt(ln2->party);
@@ -43,7 +46,8 @@ matrix Encoder::forward(const matrix &input) {
     }
 }
 
-Transformer::Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io) {
+Transformer::Transformer(CKKSKey *party, CKKSEncoder *encoder,
+                         Evaluator *evaluator, sci::NetIO *io) {
     layer = new Encoder *[n_layer];
     for (int i = 0; i < n_layer; i++) {
         layer[i] = new Encoder(party, encoder, evaluator, io, i);

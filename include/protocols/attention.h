@@ -28,4 +28,5 @@ public:
     ~Multi_Head_Attention();
     LongCiphertext forward(const std::vector<double> &input) const;
 };
+
 #endif

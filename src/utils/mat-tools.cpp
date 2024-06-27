@@ -1,8 +1,10 @@
 #include "mat-tools.h"
 #include <string>
 
-matrix matmul(const matrix &mat1, const matrix &mat2,
-              size_t dim1, size_t dim2, size_t dim3, bool trans) {
+using std::cout;
+
+matrix matmul(const matrix &mat1, const matrix &mat2, size_t dim1, size_t dim2,
+              size_t dim3, bool trans) {
     matrix result(dim1 * dim3);
     if (!trans) {
         {
@@ -85,7 +87,22 @@ matrix zero_sum(size_t row, size_t column) {
 }
 
 void load_mat(matrix &mat, string path) {
-    random_mat(mat);
+    std::ifstream input_file(path);
+
+    if (!input_file.is_open()) {
+        std::cerr << "Error opening file: " << path << "\n";
+        return;
+    }
+
+    string line;
+    while (getline(input_file, line)) {
+        std::istringstream line_stream(line);
+        string cell;
+        while (getline(line_stream, cell, ',')) {
+            mat.push_back(stoll(cell));
+        }
+    }
+    input_file.close();
 }
 
 void normalization(matrix &A, size_t row, size_t column) {
@@ -121,12 +138,14 @@ matrix mean(const matrix &input, size_t row, size_t column) {
     return result;
 }
 
-matrix standard_deviation(const matrix &input, const matrix means, size_t row, size_t column) {
+matrix standard_deviation(const matrix &input, const matrix means, size_t row,
+                          size_t column) {
     matrix result(row);
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {
-            result[i] += (input[i * column + j] - means[i]) * (input[i * column + j] - means[i]);
+            result[i] += (input[i * column + j] - means[i]) *
+                         (input[i * column + j] - means[i]);
         }
         result[i] /= column;
         result[i] = sqrt(result[i]);
@@ -172,8 +191,9 @@ void print_all_mat(const matrix &A, size_t row, size_t column) {
     }
 }
 
-LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encoder,
-                             size_t dim1, size_t dim2, size_t dim3) {
+LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party,
+                             CKKSEncoder *encoder, size_t dim1, size_t dim2,
+                             size_t dim3) {
     matrix Ae(dim1 * dim2 * dim3);
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -189,14 +209,15 @@ LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encod
 #pragma omp parallel for
 #endif
     for (size_t i = 0; i < dim2; i++) {
-        LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
+        LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i,
+                                 Ae.begin() + dim1 * dim3 * (i + 1)),
+                          encoder);
         lct[i] = LongCiphertext(lpt, party);
     }
     return lct;
 }
 
-LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
-                           const matrix &B,
+LongCiphertext RFCP_matmul(const LongCiphertext *A_secret, const matrix &B,
                            size_t dim1, size_t dim2, size_t dim3,
                            CKKSEncoder *encoder, Evaluator *evaluator) {
     // we assume that A_secret has encoded
@@ -216,14 +237,14 @@ LongCiphertext RFCP_matmul(const LongCiphertext *A_secret,
 #pragma omp parallel for
 #endif
     for (size_t i = 1; i < dim2; i++) {
-        LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
+        LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i,
+                                     Be.begin() + dim1 * dim3 * (i + 1)),
+                              encoder);
         LongCiphertext tmp_lct = A_secret[i].multiply_plain(tmp_lpt, evaluator);
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-        {
-            result.add_inplace(tmp_lct, evaluator);
-        }
+        { result.add_inplace(tmp_lct, evaluator); }
     }
     return result;
 }
