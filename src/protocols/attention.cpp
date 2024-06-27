@@ -1,5 +1,4 @@
 #include "attention.h"
-#include "model.h"
 
 using std::cout;
 
