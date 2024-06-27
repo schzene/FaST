@@ -6,7 +6,6 @@ class SecureAttention {
     CKKSKey *bob;
     CKKSEncoder *encoder;
     Evaluator *evaluator;
-    size_t d_k;
 
 public:
     SecureAttention(CKKSKey *alice_, CKKSKey *bob_,
@@ -19,7 +18,6 @@ public:
 
     void forward(const matrix &input) {
         size_t i, j;
-        int d_k = d_module / n_heads;
         matrix ra_WQa(d_module * d_k),
             ra_WKa(d_module * d_k),
             ra_WVa(d_module * d_k),
@@ -71,7 +69,7 @@ public:
         */
         auto cal_raI_A = [](matrix input_b, matrix WIb, matrix ra_xa, matrix ra_WIa, matrix ra_xa_WIa,
                             LongCiphertext ra_secret_a,
-                            CKKSKey *bob, CKKSEncoder *encoder, Evaluator *evaluator, size_t d_k) {
+                            CKKSKey *bob, CKKSEncoder *encoder, Evaluator *evaluator) {
             auto xbWI_b = matmul(input_b, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
             LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator);
@@ -87,11 +85,11 @@ public:
             return raI_secret_a;
         };
         // [r_aQ]_A
-        LongCiphertext raQ_sec_a = cal_raI_A(input_b, WQb, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a, bob, encoder, evaluator, d_k);
+        LongCiphertext raQ_sec_a = cal_raI_A(input_b, WQb, ra_xa, ra_WQa, ra_xa_WQa, ra_secret_a, bob, encoder, evaluator);
         // [r_aK]_A
-        LongCiphertext raK_sec_a = cal_raI_A(input_b, WKb, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a, bob, encoder, evaluator, d_k);
+        LongCiphertext raK_sec_a = cal_raI_A(input_b, WKb, ra_xa, ra_WKa, ra_xa_WKa, ra_secret_a, bob, encoder, evaluator);
         // [r_aV]_A
-        LongCiphertext raV_sec_a = cal_raI_A(input_b, WVb, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a, bob, encoder, evaluator, d_k);
+        LongCiphertext raV_sec_a = cal_raI_A(input_b, WVb, ra_xa, ra_WVa, ra_xa_WVa, ra_secret_a, bob, encoder, evaluator);
 #ifdef TEST1
         LongPlaintext raK_plain = raK_sec_a.decrypt(encoder, alice);
         auto raK = raK_plain.decode();
@@ -274,7 +272,6 @@ int main() {
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
 
-    size_t d_k = d_module / n_heads;
     CKKSKey *alice = new CKKSKey(1, context);
     CKKSKey *bob = new CKKSKey(2, context);
     matrix input(batch_size * d_module);

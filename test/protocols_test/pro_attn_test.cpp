@@ -27,7 +27,7 @@ int main(int argc, const char **argv) {
     io->num_rounds = 0;
     io_rev->num_rounds = 0;
     // Attention *attn = new Attention(party, context, io_pack, input, d_module, d_k, 0);
-    Multi_Head_Attention *attn = new Multi_Head_Attention(party, encoder, evaluator, io);
+    Multi_Head_Attention *attn = new Multi_Head_Attention(party, encoder, evaluator, io, 0);
 
     LongCiphertext result;
     INIT_TIMER;

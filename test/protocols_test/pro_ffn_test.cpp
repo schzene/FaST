@@ -41,7 +41,7 @@ int main(int argc, const char **argv) {
     printf("batch size:       %d\nd_module:         %d\nFFN_dim:          %d\n", batch_size, d_module, ffn_dim);
     matrix input(batch_size * d_module);
     random_mat(input, 0, 0.01);
-    FFN *ffn = new FFN(party, encoder, evaluator, io);
+    FFN *ffn = new FFN(party, encoder, evaluator, io, 0);
 
     LongCiphertext ln1_secret_a;
     if (party_ == sci::ALICE) {

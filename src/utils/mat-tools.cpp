@@ -1,4 +1,5 @@
 #include "mat-tools.h"
+#include <string>
 
 matrix matmul(const matrix &mat1, const matrix &mat2,
               size_t dim1, size_t dim2, size_t dim3, bool trans) {
@@ -61,7 +62,7 @@ void random_bfv_mat(bfv_matrix &mat, int bw) {
     size_t size = mat.size();
     uint64_t *rand_data = new uint64_t[size];
     prg.random_data(rand_data, size * sizeof(uint64_t));
-    uint64_t mask = bw >= 64 ? -1 : (1ULL << bw - 1);
+    uint64_t mask = bw >= 64 ? -1 : (1ULL << bw) - 1;
     for (size_t i = 0; i < size; i++) {
         rand_data[i] &= mask;
         mat[i] = rand_data[i];
@@ -83,7 +84,7 @@ matrix zero_sum(size_t row, size_t column) {
     return mat;
 }
 
-void load_mat(matrix &mat, const char *path) {
+void load_mat(matrix &mat, string path) {
     random_mat(mat);
 }
 

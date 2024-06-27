@@ -24,7 +24,7 @@ int main(int argc, const char **argv) {
     printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
     matrix input(batch_size * d_module);
     random_mat(input);
-    LayerNorm *ln = new LayerNorm(party, encoder, evaluator, io);
+    LayerNorm *ln = new LayerNorm(party, encoder, evaluator, io, 0);
 
     io->num_rounds = 0;
     io_rev->num_rounds = 0;

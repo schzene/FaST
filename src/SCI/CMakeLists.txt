@@ -18,6 +18,7 @@ add_library(FaST_SCI
 
 target_link_libraries(FaST_SCI
     INTERFACE
+    FaST
     FaST_SCI_BuildingBlocks
     FaST_SCI_FixedPoint
     FaST_SCI_GC
