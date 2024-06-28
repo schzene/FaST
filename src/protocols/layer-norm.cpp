@@ -1,4 +1,5 @@
 #include "layer-norm.h"
+
 LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &input) const {
     std::random_device rd;
     std::mt19937 gen(rd());

@@ -1,5 +1,4 @@
 #include "attention.h"
-#include "model.h"
 
 Attention::Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io, int layer, int head_)
     : Protocol(party, encoder, evaluator, io, layer), head(head_) {}
