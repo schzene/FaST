@@ -65,7 +65,7 @@ matrix LongPlaintext::decode(CKKSEncoder *encoder) const {
         } else {
             size_t tail_len = len % slot_count;
             tail_len = tail_len ? tail_len : slot_count;
-            copy(temp.begin(), temp.begin() + tail_len + 1,
+            copy(temp.begin(), temp.begin() + tail_len,
                  data.begin() + i * slot_count);
         }
     }
