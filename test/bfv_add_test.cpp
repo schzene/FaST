@@ -25,8 +25,7 @@ int main() {
     }
     std::cout << "\n";
 
-    BFVParm *bfv_parm =
-        new BFVParm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
+    BFVParm *bfv_parm = new BFVParm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
 
     BFVKey *alice = new BFVKey(sci::ALICE, bfv_parm);
 

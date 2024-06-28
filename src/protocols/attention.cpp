@@ -1,8 +1,7 @@
 #include "attention.h"
 #include "model.h"
 
-Attention::Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
-                     sci::NetIO *io, int layer, int head_)
+Attention::Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io, int layer, int head_)
     : Protocol(party, encoder, evaluator, io, layer), head(head_) {}
 
 matrix Attention::forward(const matrix &input) const {
@@ -74,8 +73,7 @@ matrix Attention::forward(const matrix &input) const {
             Q_div_rb1[i] /= sqrt_d_k;
             K_div_rb1[i] /= ra;
         }
-        matrix temp_Score =
-            matmul(Q_div_rb1, K_div_rb1, batch_size, d_k, batch_size, true);
+        matrix temp_Score = matmul(Q_div_rb1, K_div_rb1, batch_size, d_k, batch_size, true);
         for (size_t i = 0; i < batch_size * batch_size; i++) {
             negScore_a[i] = -negScore_a[i];
             eScore_a[i] = exp(eScore_a[i]);
@@ -84,20 +82,17 @@ matrix Attention::forward(const matrix &input) const {
         LongPlaintext Score_plain(temp_Score, encoder);
         LongCiphertext Score_b_secret_b;
         try {
-            Score_b_secret_b =
-                rb1_square_secret_b.multiply_plain(Score_plain, evaluator);
+            Score_b_secret_b = rb1_square_secret_b.multiply_plain(Score_plain, evaluator);
         } catch (std::exception &e) {
 #ifdef WARNING
             std::cout << "Zero warning\n";
 #endif
             matrix temp(Score_plain.len);
             random_mat(temp, -1e-7, 1e-7);
-            Score_b_secret_b =
-                LongCiphertext(LongPlaintext(temp, encoder), party);
+            Score_b_secret_b = LongCiphertext(LongPlaintext(temp, encoder), party);
         }
         LongPlaintext negZc_plain(negScore_a, encoder);
-        negZc_plain.mod_switch_to_inplace(Score_b_secret_b.parms_id(),
-                                          evaluator);
+        negZc_plain.mod_switch_to_inplace(Score_b_secret_b.parms_id(), evaluator);
         Score_b_secret_b.add_plain_inplace(negZc_plain, evaluator);
 #ifdef SOFTMAX_TIME_TEST
         INIT_TIMER;
@@ -174,10 +169,8 @@ matrix Attention::forward(const matrix &input) const {
     */
 
         // 1. computate r_aQ /r_aK/r_aV
-        matrix ra_xa_WQa(batch_size * d_k), ra_xa_WKa(batch_size * d_k),
-            ra_xa_WVa(batch_size * d_k), ra_xa(batch_size * d_module),
-            ra_WQa(d_module * d_k), ra_WKa(d_module * d_k),
-            ra_WVa(d_module * d_k);
+        matrix ra_xa_WQa(batch_size * d_k), ra_xa_WKa(batch_size * d_k), ra_xa_WVa(batch_size * d_k),
+            ra_xa(batch_size * d_module), ra_WQa(d_module * d_k), ra_WKa(d_module * d_k), ra_WVa(d_module * d_k);
         LongCiphertext ra_secret_a;
         recv_mat(io, &ra_xa_WQa);
         recv_mat(io, &ra_xa_WKa);
@@ -187,27 +180,22 @@ matrix Attention::forward(const matrix &input) const {
         recv_mat(io, &ra_WKa);
         recv_mat(io, &ra_WVa);
         LongCiphertext::recv(io, &ra_secret_a, party->context);
-        auto cal_raI_A = [&input, &ra_xa, &ra_secret_a,
-                          this](matrix WIb, matrix bI, matrix ra_WIa,
-                                matrix ra_xa_WIa) {
+        auto cal_raI_A = [&input, &ra_xa, &ra_secret_a, this](matrix WIb, matrix bI, matrix ra_WIa, matrix ra_xa_WIa) {
             matrix xbWI_b = matmul(input, WIb, batch_size, d_module, d_k);
             LongPlaintext xbWI_b_plain(xbWI_b, encoder);
-            LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(
-                xbWI_b_plain, evaluator); // element-wise matmul
+            LongCiphertext raI_secret_a = ra_secret_a.multiply_plain(xbWI_b_plain, evaluator); // element-wise matmul
 
             matrix temp_raI(batch_size * d_k);
             matrix temp_raI1 = matmul(ra_xa, WIb, batch_size, d_module, d_k);
             matrix temp_raI2 = matmul(input, ra_WIa, batch_size, d_module, d_k);
             for (size_t i = 0; i < batch_size; i++) {
                 for (size_t j = 0; j < d_k; j++) {
-                    temp_raI[i * d_k + j] = ra_xa_WIa[i * d_k + j] +
-                                            temp_raI1[i * d_k + j] +
-                                            temp_raI2[i * d_k + j] + bI[j];
+                    temp_raI[i * d_k + j] =
+                        ra_xa_WIa[i * d_k + j] + temp_raI1[i * d_k + j] + temp_raI2[i * d_k + j] + bI[j];
                 }
             }
             LongPlaintext temp_raI_plain(temp_raI, encoder);
-            temp_raI_plain.mod_switch_to_inplace(raI_secret_a.parms_id(),
-                                                 evaluator);
+            temp_raI_plain.mod_switch_to_inplace(raI_secret_a.parms_id(), evaluator);
             raI_secret_a.add_plain_inplace(temp_raI_plain, evaluator);
             return raI_secret_a;
         };
@@ -253,16 +241,14 @@ matrix Attention::forward(const matrix &input) const {
         }
         LongPlaintext rb2_expZb_plain(eScore_b, encoder);
         try {
-            eScore_a_secret_a.multiply_plain_inplace(rb2_expZb_plain,
-                                                     evaluator);
+            eScore_a_secret_a.multiply_plain_inplace(rb2_expZb_plain, evaluator);
         } catch (std::exception &e) {
 #ifdef WARNING
             std::cout << "Zero warning\n";
 #endif
             matrix temp(eScore_a_secret_a.len);
             random_mat(temp, -1e-7, 1e-7);
-            eScore_a_secret_a =
-                LongCiphertext(LongPlaintext(temp, encoder), party);
+            eScore_a_secret_a = LongCiphertext(LongPlaintext(temp, encoder), party);
         }
         LongPlaintext O_plain(O, encoder);
         O_plain.mod_switch_to_inplace(eScore_a_secret_a.parms_id(), evaluator);
@@ -304,33 +290,19 @@ matrix Attention::forward(const matrix &input) const {
     }
 }
 
-Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder,
-                                           Evaluator *evaluator, sci::NetIO *io,
+Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io,
                                            int layer)
     : Protocol(party, encoder, evaluator, io, layer) {
     attns = new Attention *[n_heads];
     string layer_str = std::to_string(layer),
-           dir_path = party->party == sci::ALICE
-                          ? "/data/BOLT/bolt/prune/mrpc/alice_weights_txt/"
-                          : "/data/BOLT/bolt/prune/mrpc/bob_weights_txt/",
-           WQ_file = replace(
-               "bert.encoder.layer.LAYER.attention.self.query.weight.txt",
-               "LAYER", layer_str),
-           WK_file =
-               replace("bert.encoder.layer.LAYER.attention.self.key.weight.txt",
-                       "LAYER", layer_str),
-           WV_file = replace(
-               "bert.encoder.layer.LAYER.attention.self.value.weight.txt",
-               "LAYER", layer_str),
-           bQ_file =
-               replace("bert.encoder.layer.LAYER.attention.self.query.bias.txt",
-                       "LAYER", layer_str),
-           bK_file =
-               replace("bert.encoder.layer.LAYER.attention.self.key.bias.txt",
-                       "LAYER", layer_str),
-           bV_file =
-               replace("bert.encoder.layer.LAYER.attention.self.value.bias.txt",
-                       "LAYER", layer_str);
+           dir_path = party->party == sci::ALICE ? "/data/BOLT/bolt/prune/mrpc/alice_weights_txt/"
+                                                 : "/data/BOLT/bolt/prune/mrpc/bob_weights_txt/",
+           WQ_file = replace("bert.encoder.layer.LAYER.attention.self.query.weight.txt", "LAYER", layer_str),
+           WK_file = replace("bert.encoder.layer.LAYER.attention.self.key.weight.txt", "LAYER", layer_str),
+           WV_file = replace("bert.encoder.layer.LAYER.attention.self.value.weight.txt", "LAYER", layer_str),
+           bQ_file = replace("bert.encoder.layer.LAYER.attention.self.query.bias.txt", "LAYER", layer_str),
+           bK_file = replace("bert.encoder.layer.LAYER.attention.self.key.bias.txt", "LAYER", layer_str),
+           bV_file = replace("bert.encoder.layer.LAYER.attention.self.value.bias.txt", "LAYER", layer_str);
     matrix allWQ, allWK, allWV, bQ, bK, bV;
     load_mat(allWQ, dir_path + WQ_file);
     load_mat(allWK, dir_path + WK_file);
@@ -342,18 +314,12 @@ Multi_Head_Attention::Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder,
     size_t bias_size = d_k;
     for (int i = 0; i < n_heads; i++) {
         attns[i] = new Attention(party, encoder, evaluator, io, layer, i);
-        attns[i]->WQ = matrix(allWQ.begin() + i * weight_size,
-                              allWQ.begin() + (i + 1) * weight_size);
-        attns[i]->WK = matrix(allWK.begin() + i * weight_size,
-                              allWK.begin() + (i + 1) * weight_size);
-        attns[i]->WV = matrix(allWV.begin() + i * weight_size,
-                              allWV.begin() + (i + 1) * weight_size);
-        attns[i]->bQ = matrix(bQ.begin() + i * bias_size,
-                              bQ.begin() + (i + 1) * bias_size);
-        attns[i]->bK = matrix(bK.begin() + i * bias_size,
-                              bK.begin() + (i + 1) * bias_size);
-        attns[i]->bV = matrix(bV.begin() + i * bias_size,
-                              bV.begin() + (i + 1) * bias_size);
+        attns[i]->WQ = matrix(allWQ.begin() + i * weight_size, allWQ.begin() + (i + 1) * weight_size);
+        attns[i]->WK = matrix(allWK.begin() + i * weight_size, allWK.begin() + (i + 1) * weight_size);
+        attns[i]->WV = matrix(allWV.begin() + i * weight_size, allWV.begin() + (i + 1) * weight_size);
+        attns[i]->bQ = matrix(bQ.begin() + i * bias_size, bQ.begin() + (i + 1) * bias_size);
+        attns[i]->bK = matrix(bK.begin() + i * bias_size, bK.begin() + (i + 1) * bias_size);
+        attns[i]->bV = matrix(bV.begin() + i * bias_size, bV.begin() + (i + 1) * bias_size);
     }
 }
 

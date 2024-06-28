@@ -2,8 +2,7 @@
 #include <model.h>
 #define TEST
 
-bfv_matrix fixed_mean(bfv_matrix input, size_t row, size_t column,
-                      uint64_t mask) {
+bfv_matrix fixed_mean(bfv_matrix input, size_t row, size_t column, uint64_t mask) {
     bfv_matrix result(row);
     size_t i, j;
     for (i = 0; i < row; i++) {
@@ -16,15 +15,13 @@ bfv_matrix fixed_mean(bfv_matrix input, size_t row, size_t column,
     return result;
 }
 
-bfv_matrix fixed_standard_deviation(bfv_matrix input, bfv_matrix means,
-                                    size_t row, size_t column, uint64_t mask,
+bfv_matrix fixed_standard_deviation(bfv_matrix input, bfv_matrix means, size_t row, size_t column, uint64_t mask,
                                     FixOp *fixop) {
     bfv_matrix result(row);
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {
-            result[i] += (input[i * column + j] - means[i]) *
-                         (input[i * column + j] - means[i]);
+            result[i] += (input[i * column + j] - means[i]) * (input[i * column + j] - means[i]);
         }
         result[i] /= column;
         result[i] = (uint64_t)sqrt(result[i]) & mask;
@@ -45,10 +42,8 @@ class SecureLayerNorm1 {
     FixOp *fix_public;
 
 public:
-    SecureLayerNorm1(BFVParm *bfv_parm_, BFVKey *alice_, BFVKey *bob_,
-                     sci::IOPack *iopack_, sci::OTPack *otpack_)
-        : bfv_parm(bfv_parm_), alice(alice_), bob(bob_), iopack(iopack_),
-          otpack(otpack_) {
+    SecureLayerNorm1(BFVParm *bfv_parm_, BFVKey *alice_, BFVKey *bob_, sci::IOPack *iopack_, sci::OTPack *otpack_)
+        : bfv_parm(bfv_parm_), alice(alice_), bob(bob_), iopack(iopack_), otpack(otpack_) {
         fix_alice = new FixOp(sci::ALICE, iopack, otpack);
         fix_bob = new FixOp(sci::BOB, iopack, otpack);
         fix_public = new FixOp(sci::PUBLIC, iopack, otpack);
@@ -60,8 +55,7 @@ public:
         delete fix_public;
     }
 
-    void forward(BFVLongCiphertext &attn_s, const bfv_matrix &input_a,
-                 const bfv_matrix &input_b) {
+    void forward(BFVLongCiphertext &attn_s, const bfv_matrix &input_a, const bfv_matrix &input_b) {
 
         sci::PRG128 prg;
         size_t i, j;
@@ -76,35 +70,26 @@ public:
         double ha1 = dist(gen), ha2 = dist(gen);
         double ha2_div_ha1 = ha2 / ha1;
 
-        uint64_t fix_ha1 =
-            sci::neg_mod(static_cast<int64_t>(ha1 * (1ULL << DEFAULT_BITWIDTH)),
-                         DEFAULT_ELL);
-        uint64_t fix_ha2 =
-            sci::neg_mod(static_cast<int64_t>(ha2 * (1ULL << DEFAULT_BITWIDTH)),
-                         DEFAULT_ELL);
-        uint64_t fix_h2_div_h1 = sci::neg_mod(
-            static_cast<int64_t>(ha2_div_ha1 * (1ULL << DEFAULT_BITWIDTH)),
-            DEFAULT_ELL);
+        uint64_t fix_ha1 = sci::neg_mod(static_cast<int64_t>(ha1 * (1ULL << DEFAULT_BITWIDTH)), DEFAULT_ELL);
+        uint64_t fix_ha2 = sci::neg_mod(static_cast<int64_t>(ha2 * (1ULL << DEFAULT_BITWIDTH)), DEFAULT_ELL);
+        uint64_t fix_h2_div_h1 =
+            sci::neg_mod(static_cast<int64_t>(ha2_div_ha1 * (1ULL << DEFAULT_BITWIDTH)), DEFAULT_ELL);
 
         for (size_t i = 0; i < input_a.size(); i++) {
             intput_data_a[i] = input_a[i];
             intput_data_b[i] = input_b[i];
         }
 
-        FixArray fix_input_a =
-            fix_alice->input(sci::ALICE, input_a.size(), intput_data_a);
-        FixArray fix_input_b =
-            fix_bob->input(sci::BOB, input_b.size(), intput_data_b);
-        FixArray ha1_xa = fix_public->mul(
-            fix_input_a,
-            fix_ha1); // TODO:: Fixarry * Fixarry; Maby this is correct!
+        FixArray fix_input_a = fix_alice->input(sci::ALICE, input_a.size(), intput_data_a);
+        FixArray fix_input_b = fix_bob->input(sci::BOB, input_b.size(), intput_data_b);
+        FixArray ha1_xa = fix_public->mul(fix_input_a,
+                                          fix_ha1); // TODO:: Fixarry * Fixarry; Maby this is correct!
         BFVLongCiphertext ha2_div_ha1_secret_a(bfv_parm, ha2_div_ha1, alice);
         // TODO:: ha1_xa--ss_to_he  ell to plain_mod
 
         BFVLongPlaintext ha2_plain(bfv_parm, fix_ha2);
         BFVLongCiphertext ha2_secret_a(ha2_plain, alice);
-        BFVLongCiphertext attn_ha2_b =
-            attn_s.multiply_plain(ha2_plain, bfv_parm->evaluator);
+        BFVLongCiphertext attn_ha2_b = attn_s.multiply_plain(ha2_plain, bfv_parm->evaluator);
 
         // send H1 = {hc1_xc, hc2_div_hc1_secret_a, hc2_secret_a, attn_hc2_s} to
         // bob
@@ -115,8 +100,7 @@ public:
 
         // TODO:: input_b--ss_to_he ell to plain_mod
         BFVLongPlaintext input_b_plain(bfv_parm, input_b);
-        BFVLongCiphertext xha1_secret_a =
-            ha2_secret_a.multiply_plain(input_b_plain, bfv_parm->evaluator);
+        BFVLongCiphertext xha1_secret_a = ha2_secret_a.multiply_plain(input_b_plain, bfv_parm->evaluator);
         // attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(),
         // evaluator); // error:  plain is not valid for encryption parameters !
         // just need to neg_mod to plain_mod from ell;
@@ -124,11 +108,9 @@ public:
 
         // ------------------------------------------------------------------------------
         // something is wrong here.
-        BFVLongPlaintext ha1_xa_plain(
-            bfv_parm, ha1_xa.data,
-            ha1_xa.size); // error:  fixrry need to mod to plain_mod
-        ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xa_plain,
-                                                    bfv_parm->evaluator);
+        BFVLongPlaintext ha1_xa_plain(bfv_parm, ha1_xa.data,
+                                      ha1_xa.size); // error:  fixrry need to mod to plain_mod
+        ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xa_plain, bfv_parm->evaluator);
         // ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(),
         // evaluator);
         xha1_secret_a.add_inplace(ha2_div_ha1_secret_a, bfv_parm->evaluator);
@@ -142,12 +124,10 @@ public:
             attn[i] = (attn[i] + input_a[i] + input_b[i]) & mask;
         }
         auto mu = fixed_mean(attn, batch_size, d_module, mask);
-        auto sigma = fixed_standard_deviation(attn, mu, batch_size, d_module,
-                                              mask, fix_public);
+        auto sigma = fixed_standard_deviation(attn, mu, batch_size, d_module, mask, fix_public);
         for (size_t i = 0; i < batch_size; i++) {
             for (size_t j = 0; j < d_module; j++) {
-                attn[i * d_module + j] =
-                    (attn[i * d_module + j] - mu[i]) & mask;
+                attn[i * d_module + j] = (attn[i * d_module + j] - mu[i]) & mask;
                 // attn[i * d_module + j] = (attn[i * d_module + j] / sigma[i])
                 // & mask; attn[i * d_module + j] *= gamma[i * d_module + j];
                 // attn[i * d_module + j] += beta[i * d_module + j];
@@ -164,14 +144,12 @@ int main() {
     int NL_ELL = 29;
     uint64_t mask = (NL_ELL == 64 ? -1 : ((1ULL << NL_ELL) - 1));
 
-    BFVParm *bfv_parm =
-        new BFVParm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
+    BFVParm *bfv_parm = new BFVParm(8192, {54, 54, 55, 55}, default_prime_mod.at(29));
 
     BFVKey *alice = new BFVKey(sci::ALICE, bfv_parm);
     BFVKey *bob = new BFVKey(sci::BOB, bfv_parm);
 
-    bfv_matrix attn(batch_size * d_module), input_a(batch_size * d_module),
-        input_b(batch_size * d_module);
+    bfv_matrix attn(batch_size * d_module), input_a(batch_size * d_module), input_b(batch_size * d_module);
 
     random_bfv_mat(attn);
     random_bfv_mat(input_a);
@@ -187,8 +165,7 @@ int main() {
     size_t i, j;
     sci::IOPack *iopack;
     sci::OTPack *otpack;
-    SecureLayerNorm1 *sec_ln1 =
-        new SecureLayerNorm1(bfv_parm, alice, bob, iopack, otpack);
+    SecureLayerNorm1 *sec_ln1 = new SecureLayerNorm1(bfv_parm, alice, bob, iopack, otpack);
     sec_ln1->forward(attn_secret_s, input_a, input_b);
     int length = 10;
     uint64_t *share = new uint64_t[length];

@@ -11,8 +11,7 @@ class Attention : public Protocol {
 
 public:
     friend Multi_Head_Attention;
-    Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
-              sci::NetIO *io, int layer, int head_);
+    Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io, int layer, int head_);
     ~Attention() {}
     matrix forward(const matrix &input) const;
     // std::vector<double> forward(const std::vector<double> &input) const;
@@ -23,8 +22,7 @@ class Multi_Head_Attention : public Protocol {
     Attention **attns;
 
 public:
-    Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder,
-                         Evaluator *evaluator, sci::NetIO *io, int layer);
+    Multi_Head_Attention(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io, int layer);
     ~Multi_Head_Attention();
     LongCiphertext forward(const std::vector<double> &input) const;
 };

@@ -3,8 +3,7 @@
 int main(int argc, const char **argv) {
     EncryptionParameters parms(scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(
-        CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
+    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
     SEALContext *context = new SEALContext(parms);
     CKKSEncoder *encoder = new CKKSEncoder(*context);
     Evaluator *evaluator = new Evaluator(*context);
@@ -22,8 +21,7 @@ int main(int argc, const char **argv) {
     sci::NetIO *io = io_pack->io;
     sci::NetIO *io_rev = io_pack->io_rev;
 
-    printf("batch size:       %d\nd_module:         %d\n", batch_size,
-           d_module);
+    printf("batch size:       %d\nd_module:         %d\n", batch_size, d_module);
     matrix input(batch_size * d_module);
     random_mat(input);
     LayerNorm *ln = new LayerNorm(party, encoder, evaluator, io, 0);
@@ -52,11 +50,9 @@ int main(int argc, const char **argv) {
     } else if (comm < 1024 * 1024) {
         printf("data size of communication: %.2lf KB\n", comm / 1024.);
     } else if (comm < 1024 * 1024 * 1024) {
-        printf("data size of communication: %.2lf MB\n",
-               comm / (1024. * 1024.));
+        printf("data size of communication: %.2lf MB\n", comm / (1024. * 1024.));
     } else {
-        printf("data size of communication: %.2lf MB\n",
-               comm / (1024. * 1024. * 1024.));
+        printf("data size of communication: %.2lf MB\n", comm / (1024. * 1024. * 1024.));
     }
     std::cout << "rounds of communication: " << rounds << "\n";
 

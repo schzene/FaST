@@ -1,7 +1,6 @@
 #include "he-tools.h"
 
-CKKSKey::CKKSKey(int party_, SEALContext *context_)
-    : party(party_), context(context_) {
+CKKSKey::CKKSKey(int party_, SEALContext *context_) : party(party_), context(context_) {
     assert(party == sci::ALICE || party == sci::BOB);
     keygen = new KeyGenerator(*context);
     keygen->create_public_key(public_key);
@@ -65,8 +64,7 @@ matrix LongPlaintext::decode(CKKSEncoder *encoder) const {
         } else {
             size_t tail_len = len % slot_count;
             tail_len = tail_len ? tail_len : slot_count;
-            copy(temp.begin(), temp.begin() + tail_len,
-                 data.begin() + i * slot_count);
+            copy(temp.begin(), temp.begin() + tail_len, data.begin() + i * slot_count);
         }
     }
     return data;
@@ -77,8 +75,7 @@ LongCiphertext::LongCiphertext(const Ciphertext &ct) {
     cipher_data.push_back(ct);
 }
 
-LongCiphertext::LongCiphertext(double data, CKKSKey *party,
-                               CKKSEncoder *encoder) {
+LongCiphertext::LongCiphertext(double data, CKKSKey *party, CKKSEncoder *encoder) {
     len = 1;
     Plaintext pt;
     encoder->encode(data, scale, pt);
@@ -107,8 +104,7 @@ LongPlaintext LongCiphertext::decrypt(CKKSKey *party) const {
     return lpt;
 }
 
-void LongCiphertext::add_plain_inplace(LongPlaintext &lpt,
-                                       Evaluator *evaluator) {
+void LongCiphertext::add_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator) {
     if (len == 1) {
         len = lpt.len;
         Ciphertext ct(cipher_data[0]);
@@ -119,22 +115,21 @@ void LongCiphertext::add_plain_inplace(LongPlaintext &lpt,
             cipher_data.push_back(ctemp);
         }
     } else if (lpt.len == 1) {
-        for (size_t i = 0; i < cipher_data.size(); i++)
+        for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->add_plain_inplace(cipher_data[i], lpt.plain_data[0]);
+        }
     } else if (len == lpt.len) {
-        for (size_t i = 0; i < cipher_data.size(); i++)
+        for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->add_plain_inplace(cipher_data[i], lpt.plain_data[i]);
+        }
     } else {
         char buf[100];
-        sprintf(buf,
-                "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch",
-                len, lpt.len);
+        sprintf(buf, "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch", len, lpt.len);
         throw lenth_error(buf);
     }
 }
 
-LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt,
-                                         Evaluator *evaluator) const {
+LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt, Evaluator *evaluator) const {
     LongCiphertext lct;
     lct.len = 0;
     if (len == 1) {
@@ -160,9 +155,7 @@ LongCiphertext LongCiphertext::add_plain(LongPlaintext &lpt,
         }
     } else {
         char buf[100];
-        sprintf(buf,
-                "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch",
-                len, lpt.len);
+        sprintf(buf, "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch", len, lpt.len);
         throw lenth_error(buf);
     }
     return lct;
@@ -179,23 +172,21 @@ void LongCiphertext::add_inplace(LongCiphertext &lct, Evaluator *evaluator) {
             cipher_data.push_back(ctemp);
         }
     } else if (lct.len == 1) {
-        for (size_t i = 0; i < cipher_data.size(); i++)
+        for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->add_inplace(cipher_data[i], lct.cipher_data[0]);
+        }
     } else if (len == lct.len) {
-        for (size_t i = 0; i < cipher_data.size(); i++)
+        for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->add_inplace(cipher_data[i], lct.cipher_data[i]);
+        }
     } else {
         char buf[100];
-        sprintf(
-            buf,
-            "Length of LongCiphertext(%ld) and LongCiphertext(%ld) mismatch",
-            len, lct.len);
+        sprintf(buf, "Length of LongCiphertext(%ld) and LongCiphertext(%ld) mismatch", len, lct.len);
         throw lenth_error(buf);
     }
 }
 
-LongCiphertext LongCiphertext::add(LongCiphertext &lct,
-                                   Evaluator *evaluator) const {
+LongCiphertext LongCiphertext::add(LongCiphertext &lct, Evaluator *evaluator) const {
     LongCiphertext lcct;
     lcct.len = 0;
     if (len == 1) {
@@ -221,18 +212,13 @@ LongCiphertext LongCiphertext::add(LongCiphertext &lct,
         }
     } else {
         char buf[100];
-        sprintf(
-            buf,
-            "Length of LongCiphertext(%ld) and LongCiphertext(%ld) mismatch",
-            len, lct.len);
+        sprintf(buf, "Length of LongCiphertext(%ld) and LongCiphertext(%ld) mismatch", len, lct.len);
         throw lenth_error(buf);
     }
     return lcct;
 }
 
-void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt,
-                                            Evaluator *evaluator,
-                                            RelinKeys *relin_keys) {
+void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys) {
     if (len == 1) {
         len = lpt.len;
         Ciphertext ct(cipher_data[0]);
@@ -249,8 +235,7 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt,
         }
     } else if (lpt.len == 1) {
         for (size_t i = 0; i < cipher_data.size(); i++) {
-            evaluator->multiply_plain_inplace(cipher_data[i],
-                                              lpt.plain_data[0]);
+            evaluator->multiply_plain_inplace(cipher_data[i], lpt.plain_data[0]);
             if (relin_keys != nullptr) {
                 evaluator->relinearize_inplace(cipher_data[i], *relin_keys);
             }
@@ -259,8 +244,7 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt,
         }
     } else if (len == lpt.len) {
         for (size_t i = 0; i < cipher_data.size(); i++) {
-            evaluator->multiply_plain_inplace(cipher_data[i],
-                                              lpt.plain_data[i]);
+            evaluator->multiply_plain_inplace(cipher_data[i], lpt.plain_data[i]);
             if (relin_keys != nullptr) {
                 evaluator->relinearize_inplace(cipher_data[i], *relin_keys);
             }
@@ -269,16 +253,12 @@ void LongCiphertext::multiply_plain_inplace(LongPlaintext &lpt,
         }
     } else {
         char buf[100];
-        sprintf(buf,
-                "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch",
-                len, lpt.len);
+        sprintf(buf, "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch", len, lpt.len);
         throw lenth_error(buf);
     }
 }
 
-LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt,
-                                              Evaluator *evaluator,
-                                              RelinKeys *relin_keys) const {
+LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys) const {
     LongCiphertext lct;
     lct.len = 0;
     if (len == 1) {
@@ -319,16 +299,13 @@ LongCiphertext LongCiphertext::multiply_plain(LongPlaintext &lpt,
         }
     } else {
         char buf[100];
-        sprintf(buf,
-                "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch",
-                len, lpt.len);
+        sprintf(buf, "Length of LongCiphertext(%ld) and LongPlaintext(%ld) mismatch", len, lpt.len);
         throw lenth_error(buf);
     }
     return lct;
 }
 
-void LongCiphertext::send(sci::NetIO *io, LongCiphertext *lct,
-                          bool count_comm) {
+void LongCiphertext::send(sci::NetIO *io, LongCiphertext *lct, bool count_comm) {
     assert(lct->len > 0);
     io->send_data(&(lct->len), sizeof(size_t), count_comm);
     size_t size = lct->cipher_data.size();
@@ -344,8 +321,7 @@ void LongCiphertext::send(sci::NetIO *io, LongCiphertext *lct,
     }
 }
 
-void LongCiphertext::recv(sci::NetIO *io, LongCiphertext *lct,
-                          SEALContext *context, bool count_comm) {
+void LongCiphertext::recv(sci::NetIO *io, LongCiphertext *lct, SEALContext *context, bool count_comm) {
     io->recv_data(&(lct->len), sizeof(size_t), count_comm);
     size_t size;
     io->recv_data(&size, sizeof(size_t), count_comm);

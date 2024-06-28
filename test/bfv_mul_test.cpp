@@ -15,54 +15,38 @@ public:
         return Complex(real + other.real, i + other.i, j + other.j, k + other.k);
     }
 
-    inline Complex operator+(double other) const {
-        return Complex(real + other, i, j, k);
-    }
+    inline Complex operator+(double other) const { return Complex(real + other, i, j, k); }
 
     inline Complex operator-(Complex &other) const {
         return Complex(real - other.real, i - other.i, j - other.j, k - other.k);
     }
 
-    inline Complex operator-(double other) const {
-        return Complex(real - other, i, j, k);
-    }
+    inline Complex operator-(double other) const { return Complex(real - other, i, j, k); }
 
     inline Complex operator*(Complex &other) const {
-        return Complex(
-            real * other.real - i * other.i - j * other.j - k * other.k,
-            real * other.i + i * other.real + j * other.k - k * other.j,
-            real * other.j - i * other.k + j * other.real + k * other.i,
-            real * other.k + i * other.j - j * other.i + k * other.real);
+        return Complex(real * other.real - i * other.i - j * other.j - k * other.k,
+                       real * other.i + i * other.real + j * other.k - k * other.j,
+                       real * other.j - i * other.k + j * other.real + k * other.i,
+                       real * other.k + i * other.j - j * other.i + k * other.real);
     }
 
-    inline Complex operator*(double other) const {
-        return Complex(real * other, i * other, j * other, k * other);
-    }
+    inline Complex operator*(double other) const { return Complex(real * other, i * other, j * other, k * other); }
 
-    inline Complex operator/(double other) const {
-        return Complex(real / other, i / other, j / other, k / other);
-    }
+    inline Complex operator/(double other) const { return Complex(real / other, i / other, j / other, k / other); }
 
-    inline Complex conjugate() const {
-        return Complex(real, -i, -j, -k);
-    }
+    inline Complex conjugate() const { return Complex(real, -i, -j, -k); }
 
-    inline double dot(Complex &other) const {
-        return real * other.real + i * other.i + j * other.j + k * other.k;
-    }
+    inline double dot(Complex &other) const { return real * other.real + i * other.i + j * other.j + k * other.k; }
 
     inline Complex outer(Complex &other) const {
-        return Complex(0,
-                       i * other.real - real * other.i + j * other.k - k * other.j,
+        return Complex(0, i * other.real - real * other.i + j * other.k - k * other.j,
                        j * other.real - real * other.j + k * other.i - i * other.k,
                        k * other.real - real * other.k + i * other.j - j * other.i);
     }
 
     inline Complex even(Complex &other) const {
-        return Complex(real * other.real - i * other.i - j * other.j - k * other.k,
-                       real * other.i + i * other.real,
-                       real * other.j + j * other.real,
-                       real * other.k + k * other.real);
+        return Complex(real * other.real - i * other.i - j * other.j - k * other.k, real * other.i + i * other.real,
+                       real * other.j + j * other.real, real * other.k + k * other.real);
     }
 
     inline Complex cross(Complex &other) const {
@@ -74,26 +58,18 @@ public:
         return Complex(real / square_modulo, -i / square_modulo, -j / square_modulo, -k / square_modulo);
     }
 
-    inline double modulo() const {
-        return sqrt(real * real + i * i + j * j + k * k);
-    }
+    inline double modulo() const { return sqrt(real * real + i * i + j * j + k * k); }
 
-    inline double scalar() const {
-        return real;
-    }
+    inline double scalar() const { return real; }
 
-    inline Complex vector() const {
-        return Complex(i, j, k);
-    }
+    inline Complex vector() const { return Complex(i, j, k); }
 
     inline Complex sgn() const {
         double modulo = sqrt(real * real + i * i + j * j + k * k);
         return Complex(real / modulo, i / modulo, j / modulo, k / modulo);
     }
 
-    inline double arg() const {
-        return acos(real / sqrt(real * real + i * i + j * j + k * k));
-    }
+    inline double arg() const { return acos(real / sqrt(real * real + i * i + j * j + k * k)); }
 
     friend ostream &operator<<(ostream &os, const Complex &c);
 };
@@ -139,5 +115,5 @@ int main() {
     vector<uint64_t> res(1);
     bfv_parm->encoder->decode(ptaa, res);
     std::cout << "result: " << double(res[0]) / double(mask * mask) << "\n";
-    // std::cout << "result: " << res[0] << "\n"; 
+    // std::cout << "result: " << res[0] << "\n";
 }

@@ -10,8 +10,7 @@ class Encoder {
     LayerNorm *ln2;
 
 public:
-    Encoder(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
-            sci::NetIO *io, int layer);
+    Encoder(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io, int layer);
     ~Encoder();
     matrix forward(const matrix &input);
 };
@@ -20,8 +19,7 @@ class Transformer {
     Encoder **layer;
 
 public:
-    Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator,
-                sci::NetIO *io);
+    Transformer(CKKSKey *party, CKKSEncoder *encoder, Evaluator *evaluator, sci::NetIO *io);
     ~Transformer();
     matrix forward(const matrix &input);
 };

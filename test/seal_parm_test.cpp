@@ -8,9 +8,7 @@
 #define TEST
 using namespace std;
 
-int64_t neg_mod(int64_t val, int64_t mod) {
-    return ((val % mod) + mod) % mod;
-}
+int64_t neg_mod(int64_t val, int64_t mod) { return ((val % mod) + mod) % mod; }
 
 vector<vector<uint64_t>> read_data(const string &filename) {
     ifstream input_file(filename);

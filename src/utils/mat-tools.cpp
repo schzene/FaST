@@ -3,8 +3,7 @@
 
 using std::cout;
 
-matrix matmul(const matrix &mat1, const matrix &mat2, size_t dim1, size_t dim2,
-              size_t dim3, bool trans) {
+matrix matmul(const matrix &mat1, const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans) {
     matrix result(dim1 * dim3);
     if (!trans) {
         {
@@ -138,14 +137,12 @@ matrix mean(const matrix &input, size_t row, size_t column) {
     return result;
 }
 
-matrix standard_deviation(const matrix &input, const matrix means, size_t row,
-                          size_t column) {
+matrix standard_deviation(const matrix &input, const matrix means, size_t row, size_t column) {
     matrix result(row);
     size_t i, j;
     for (i = 0; i < row; i++) {
         for (j = 0; j < column; j++) {
-            result[i] += (input[i * column + j] - means[i]) *
-                         (input[i * column + j] - means[i]);
+            result[i] += (input[i * column + j] - means[i]) * (input[i * column + j] - means[i]);
         }
         result[i] /= column;
         result[i] = sqrt(result[i]);
@@ -191,8 +188,7 @@ void print_all_mat(const matrix &A, size_t row, size_t column) {
     }
 }
 
-LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party,
-                             CKKSEncoder *encoder, size_t dim1, size_t dim2,
+LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party, CKKSEncoder *encoder, size_t dim1, size_t dim2,
                              size_t dim3) {
     matrix Ae(dim1 * dim2 * dim3);
 #ifdef _OPENMP
@@ -209,16 +205,13 @@ LongCiphertext *RFCP_encodeA(const matrix &A, CKKSKey *party,
 #pragma omp parallel for
 #endif
     for (size_t i = 0; i < dim2; i++) {
-        LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i,
-                                 Ae.begin() + dim1 * dim3 * (i + 1)),
-                          encoder);
+        LongPlaintext lpt(matrix(Ae.begin() + dim1 * dim3 * i, Ae.begin() + dim1 * dim3 * (i + 1)), encoder);
         lct[i] = LongCiphertext(lpt, party);
     }
     return lct;
 }
 
-LongCiphertext RFCP_matmul(const LongCiphertext *A_secret, const matrix &B,
-                           size_t dim1, size_t dim2, size_t dim3,
+LongCiphertext RFCP_matmul(const LongCiphertext *A_secret, const matrix &B, size_t dim1, size_t dim2, size_t dim3,
                            CKKSEncoder *encoder, Evaluator *evaluator) {
     // we assume that A_secret has encoded
     matrix Be(dim1 * dim2 * dim3);
@@ -237,9 +230,7 @@ LongCiphertext RFCP_matmul(const LongCiphertext *A_secret, const matrix &B,
 #pragma omp parallel for
 #endif
     for (size_t i = 1; i < dim2; i++) {
-        LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i,
-                                     Be.begin() + dim1 * dim3 * (i + 1)),
-                              encoder);
+        LongPlaintext tmp_lpt(matrix(Be.begin() + dim1 * dim3 * i, Be.begin() + dim1 * dim3 * (i + 1)), encoder);
         LongCiphertext tmp_lct = A_secret[i].multiply_plain(tmp_lpt, evaluator);
 #ifdef _OPENMP
 #pragma omp critical

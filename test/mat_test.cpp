@@ -1,8 +1,6 @@
 #include <model.h>
 
-matrix matmul1(
-    const matrix &mat1,
-    const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans = false) {
+matrix matmul1(const matrix &mat1, const matrix &mat2, size_t dim1, size_t dim2, size_t dim3, bool trans = false) {
     matrix result(dim1 * dim3);
     if (!trans) {
         for (size_t i = 0; i < dim1; i++) {

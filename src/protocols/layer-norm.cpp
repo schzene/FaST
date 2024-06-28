@@ -1,6 +1,5 @@
 #include "layer-norm.h"
-LongCiphertext LayerNorm::forward(const LongCiphertext &attn,
-                                  const matrix &input) const {
+LongCiphertext LayerNorm::forward(const LongCiphertext &attn, const matrix &input) const {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dist(-1, 1);
@@ -10,8 +9,7 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn,
         double ha1 = dist(gen), ha2 = dist(gen), ka = dist(gen);
         matrix ha1_xa(input.size());
         LongPlaintext ha2_plain(ha2, encoder);
-        LongCiphertext ha2_div_ha1_secret_a(ha2 / ha1, party, encoder),
-            ha2_secret_a(ha2_plain, party), xha1_secret_a;
+        LongCiphertext ha2_div_ha1_secret_a(ha2 / ha1, party, encoder), ha2_secret_a(ha2_plain, party), xha1_secret_a;
 #ifdef LOG
         INIT_TIMER
         START_TIMER
@@ -46,8 +44,7 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn,
         matrix tmp1(batch_size * d_module);
         for (i = 0; i < batch_size; i++) {
             for (j = 0; j < d_module; j++) {
-                tmp1[i * d_module + j] =
-                    (xgb[i * d_module + j] - mu_gb[i]) * ka;
+                tmp1[i * d_module + j] = (xgb[i * d_module + j] - mu_gb[i]) * ka;
                 div_sigma_gb[i * d_module + j] = 1 / (sigma_gb[i] * ka);
             }
         }
@@ -64,11 +61,10 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn,
         return LongCiphertext();
     } else {
         double gb = dist(gen);
-        matrix ha1_xa(batch_size * d_module), tmp1(batch_size * d_module),
-            gamma(batch_size * d_module), beta(batch_size * d_module);
+        matrix ha1_xa(batch_size * d_module), tmp1(batch_size * d_module), gamma(batch_size * d_module),
+            beta(batch_size * d_module);
         LongPlaintext input_b_plain(input, encoder), gb_plain(gb, encoder);
-        LongCiphertext ha2_div_ha1_secret_a, ha2_secret_a, attn_ha2_b,
-            tmp2_secret_a;
+        LongCiphertext ha2_div_ha1_secret_a, ha2_secret_a, attn_ha2_b, tmp2_secret_a;
         random_mat(gamma);
         random_mat(beta);
 #ifdef LOG
@@ -88,16 +84,13 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn,
         LongCiphertext::recv(io, &attn_ha2_b, party->context);
 
         auto attn_ha2_plain = attn_ha2_b.decrypt(party);
-        LongCiphertext xha1_secret_a =
-            ha2_secret_a.multiply_plain(input_b_plain, evaluator);
-        attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(),
-                                             evaluator);
+        LongCiphertext xha1_secret_a = ha2_secret_a.multiply_plain(input_b_plain, evaluator);
+        attn_ha2_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
         xha1_secret_a.add_plain_inplace(attn_ha2_plain, evaluator);
 
         LongPlaintext ha1_xc_plain(ha1_xa, encoder);
         ha2_div_ha1_secret_a.multiply_plain_inplace(ha1_xc_plain, evaluator);
-        ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(),
-                                                   evaluator);
+        ha2_div_ha1_secret_a.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
         xha1_secret_a.add_inplace(ha2_div_ha1_secret_a, evaluator);
 
         gb_plain.mod_switch_to_inplace(xha1_secret_a.parms_id(), evaluator);
@@ -114,10 +107,8 @@ LongCiphertext LayerNorm::forward(const LongCiphertext &attn,
         for (i = 0; i < batch_size * d_module; i++) {
             tmp1[i] *= gamma[i];
         }
-        LongPlaintext gamma_tmp1_plain(tmp1, encoder),
-            beta_plain(beta, encoder);
-        LongCiphertext ln_secret_a =
-            tmp2_secret_a.multiply_plain(gamma_tmp1_plain, evaluator);
+        LongPlaintext gamma_tmp1_plain(tmp1, encoder), beta_plain(beta, encoder);
+        LongCiphertext ln_secret_a = tmp2_secret_a.multiply_plain(gamma_tmp1_plain, evaluator);
         beta_plain.mod_switch_to_inplace(ln_secret_a.parms_id(), evaluator);
         ln_secret_a.add_plain_inplace(beta_plain, evaluator);
 #ifdef LOG

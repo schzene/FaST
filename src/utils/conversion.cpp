@@ -1,7 +1,6 @@
 #include "conversion.h"
 
-void Conversion::he_to_ss(BFVLongCiphertext &ciphertext, uint64_t *share,
-                          Evaluator *evaluator) {
+void Conversion::he_to_ss(BFVLongCiphertext &ciphertext, uint64_t *share, Evaluator *evaluator) {
     size_t len = ciphertext.len;
     BFVLongPlaintext p_2_plain(bfvparm, bfvparm->plain_mod / 2);
     BFVLongCiphertext lct = ciphertext.add_plain(p_2_plain, evaluator);
@@ -11,8 +10,7 @@ void Conversion::he_to_ss(BFVLongCiphertext &ciphertext, uint64_t *share,
     std::copy(mat.begin(), mat.end(), share);
 }
 
-void Conversion::ss_to_he(uint64_t *share, BFVLongCiphertext &ciphertext,
-                          int length, int bw) {
+void Conversion::ss_to_he(uint64_t *share, BFVLongCiphertext &ciphertext, int length, int bw) {
 #ifdef LOG
     auto t_conversion = high_resolution_clock::now();
 #endif
@@ -25,8 +23,7 @@ void Conversion::ss_to_he(uint64_t *share, BFVLongCiphertext &ciphertext,
         vector<uint64_t> tmp(slot_count);
         for (int j = 0; j < slot_count; ++j) {
             tmp_plain[i * slot_count + j] =
-                sci::neg_mod(sci::signed_val(share[i * slot_count + j], bw),
-                             (int64_t)plain_mod);
+                sci::neg_mod(sci::signed_val(share[i * slot_count + j], bw), (int64_t)plain_mod);
         }
     }
 

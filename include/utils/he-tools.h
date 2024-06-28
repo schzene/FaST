@@ -48,8 +48,7 @@ public:
     LongPlaintext(matrix data, CKKSEncoder *encoder);
     matrix decode(CKKSEncoder *encoder) const;
 
-    inline void mod_switch_to_inplace(parms_id_type parms_id,
-                                      Evaluator *evaluator) {
+    inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < plain_data.size(); i++) {
             evaluator->mod_switch_to_inplace(plain_data[i], parms_id);
         }
@@ -69,15 +68,11 @@ public:
     LongCiphertext add_plain(LongPlaintext &lpt, Evaluator *evaluator) const;
     void add_inplace(LongCiphertext &lct, Evaluator *evaluator);
     LongCiphertext add(LongCiphertext &lct, Evaluator *evaluator) const;
-    void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator,
-                                RelinKeys *relin_keys = nullptr);
-    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator,
-                                  RelinKeys *relin_keys = nullptr) const;
+    void multiply_plain_inplace(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys = nullptr);
+    LongCiphertext multiply_plain(LongPlaintext &lpt, Evaluator *evaluator, RelinKeys *relin_keys = nullptr) const;
 
-    static void send(sci::NetIO *io, LongCiphertext *lct,
-                     bool count_comm = true);
-    static void recv(sci::NetIO *io, LongCiphertext *lct, SEALContext *context,
-                     bool count_comm = true);
+    static void send(sci::NetIO *io, LongCiphertext *lct, bool count_comm = true);
+    static void recv(sci::NetIO *io, LongCiphertext *lct, SEALContext *context, bool count_comm = true);
 
     inline void rescale_to_next_inplace(Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++) {
@@ -85,8 +80,7 @@ public:
         }
     }
 
-    inline void mod_switch_to_inplace(parms_id_type parms_id,
-                                      Evaluator *evaluator) {
+    inline void mod_switch_to_inplace(parms_id_type parms_id, Evaluator *evaluator) {
         for (size_t i = 0; i < cipher_data.size(); i++) {
             evaluator->mod_switch_to_inplace(cipher_data[i], parms_id);
         }
@@ -124,8 +118,7 @@ public:
         std::cout << "/" << std::endl;
         std::cout << "| Encryption parameters :" << std::endl;
         std::cout << "|   scheme: " << scheme_name << std::endl;
-        std::cout << "|   poly_modulus_degree: "
-                  << context_data.parms().poly_modulus_degree() << std::endl;
+        std::cout << "|   poly_modulus_degree: " << context_data.parms().poly_modulus_degree() << std::endl;
 
         /*
         Print the size of the true (product) coefficient modulus.
@@ -144,9 +137,7 @@ public:
         For the BFV scheme print the plain_modulus parameter.
         */
         if (context_data.parms().scheme() == seal::scheme_type::bfv) {
-            std::cout << "|   plain_modulus: "
-                      << context_data.parms().plain_modulus().value()
-                      << std::endl;
+            std::cout << "|   plain_modulus: " << context_data.parms().plain_modulus().value() << std::endl;
         }
 
         std::cout << "\\" << std::endl;

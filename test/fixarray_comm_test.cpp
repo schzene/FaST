@@ -10,7 +10,7 @@ int main(int argc, const char **argv) {
         if (party_ == sci::ALICE) {
             std::cout << "Party: ALICE"
                       << "\n";
-            
+
         } else if (party_ == sci::BOB) {
             std::cout << "Party: BOB"
                       << "\n";
@@ -23,7 +23,7 @@ int main(int argc, const char **argv) {
             fix_party->send_fix_array(fix_test);
         } else if (party_ == sci::BOB) {
             FixArray fix_test;
-            std::cout <<fix_test.ell << "\n";
+            std::cout << fix_test.ell << "\n";
             fix_party->recv_fix_array(fix_test);
         }
 
