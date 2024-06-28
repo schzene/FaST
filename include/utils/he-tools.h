@@ -98,9 +98,7 @@ public:
         }
     }
 
-    inline const parms_id_type parms_id() const noexcept {
-        return cipher_data[0].parms_id();
-    }
+    inline parms_id_type parms_id() const { return cipher_data[0].parms_id(); }
 
     inline void print_parameters(std::shared_ptr<seal::SEALContext> context) {
         // Verify parameters
