@@ -17,8 +17,10 @@ FixedLayerNorm::FixedLayerNorm(BFVKey *party, BFVParm *parm, sci::NetIO *io, FPM
            beta_file = before_attn
                            ? replace("bert.encoder.layer.LAYER.attention.output.LayerNorm.bias.txt", "LAYER", layer_str)
                            : replace("bert.encoder.layer.LAYER.output.LayerNorm.bias.txt", "LAYER", layer_str);
-    load_bfv_mat(gamma, dir_path + gamma_file);
-    load_bfv_mat(beta, dir_path + beta_file);
+    if (party->party == sci::BOB) {
+        load_bfv_mat(gamma, dir_path + gamma_file);
+        load_bfv_mat(beta, dir_path + beta_file);
+    }
 }
 
 BFVLongCiphertext FixedLayerNorm::forward(const BFVLongCiphertext &attn, const bfv_matrix &input) const {
