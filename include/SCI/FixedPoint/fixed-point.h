@@ -1,5 +1,6 @@
 #ifndef FIXED_POINT_H__
 #define FIXED_POINT_H__
+
 #include "BuildingBlocks/aux-protocols.h"
 #include "BuildingBlocks/linear-ot.h"
 #include "BuildingBlocks/truncation.h"
@@ -10,20 +11,18 @@
 #include "OT/emp-ot.h"
 #include "bool-data.h"
 
-#define DEFAULT_BITWIDTH 37
-#define DEFAULT_ELL 64
-
-#define print_fix(vec)                                         \
-    {                                                          \
-        auto tmp_pub = fix->output(sci::PUBLIC, vec);          \
-        std::cout << #vec << "_pub: " << tmp_pub << std::endl; \
+#define print_fix(vec)                                                                                                 \
+    {                                                                                                                  \
+        auto tmp_pub = fix->output(sci::PUBLIC, vec);                                                                  \
+        std::cout << #vec << "_pub: " << tmp_pub << std::endl;                                                         \
     }
 
 // A container to hold an array of fixed-point values
-// If party is set as PUBLIC for a FixArray instance, then the underlying array is known publicly and we maintain the invariant that both parties will hold identical data in that instance.
-// Else, the underlying array is secret-shared and the class instance will hold the party's share of the secret array. In this case, the party data member denotes which party this share belongs to.
-// signed_ denotes the signedness, ell is the bitlength, and s is the scale of the underlying fixed-point array
-// If s is set to 0, the FixArray will behave like an IntegerArray
+// If party is set as PUBLIC for a FixArray instance, then the underlying array is known publicly and we maintain the
+// invariant that both parties will hold identical data in that instance. Else, the underlying array is secret-shared
+// and the class instance will hold the party's share of the secret array. In this case, the party data member denotes
+// which party this share belongs to. signed_ denotes the signedness, ell is the bitlength, and s is the scale of the
+// underlying fixed-point array If s is set to 0, the FixArray will behave like an IntegerArray
 
 class FixArray {
 public:
@@ -31,12 +30,12 @@ public:
     int size = 0;             // size of array
     uint64_t *data = nullptr; // data (ell-bit integers)
     bool signed_;             // signed? (1: signed; 0: unsigned)
-    int ell = DEFAULT_ELL;    // bitlength
-    int s = DEFAULT_BITWIDTH; // scale
+    int ell;                  // bitlength
+    int s;                    // scale
 
     FixArray(){};
 
-    FixArray(int party_, int sz, bool signed__ = true, int ell_ = DEFAULT_ELL, int s_ = DEFAULT_BITWIDTH) {
+    FixArray(int party_, int sz, bool signed__, int ell_, int s_ = 0) {
         assert(party_ == sci::PUBLIC || party_ == sci::ALICE || party_ == sci::BOB);
         assert(sz > 0);
         assert(ell_ <= 64 && ell_ > 0);
@@ -70,15 +69,13 @@ public:
         other.data = nullptr;
     }
 
-    ~FixArray() { if (data != nullptr) delete[] data; }
+    ~FixArray() { delete[] data; }
 
-    template <class T>
-    std::vector<T> get_native_type();
+    template <class T> std::vector<T> get_native_type();
 
     // copy assignment
     FixArray &operator=(const FixArray &other) {
-        if (this == &other)
-            return *this;
+        if (this == &other) return *this;
 
         delete[] this->data;
         this->party = other.party;
@@ -93,8 +90,7 @@ public:
 
     // move assignment
     FixArray &operator=(FixArray &&other) noexcept {
-        if (this == &other)
-            return *this;
+        if (this == &other) return *this;
 
         delete[] this->data;
         this->party = other.party;
@@ -157,12 +153,13 @@ public:
     }
 
     // input functions: return a FixArray that stores data_
-    // party_ denotes which party provides the input data_ and the data_ provided by the other party is ignored. If party_ is PUBLIC, then the data_ provided by both parties must be identical.
-    // sz is the size of the returned FixArray and the uint64_t array pointed by data_
-    // signed__, ell_, and s_ are the signedness, bitlength and scale of the input, respectively
-    FixArray input(int party_, int sz, const uint64_t *data_, bool signed__ = true, int ell_ = DEFAULT_ELL, int s_ = DEFAULT_BITWIDTH);
-    // same as the above function, except that it replicates data_ in all sz positions of the returned FixArray
-    FixArray input(int party_, int sz, uint64_t data_, bool signed__ = true, int ell_ = DEFAULT_ELL, int s_ = DEFAULT_BITWIDTH);
+    // party_ denotes which party provides the input data_ and the data_ provided by the other party is ignored. If
+    // party_ is PUBLIC, then the data_ provided by both parties must be identical. sz is the size of the returned
+    // FixArray and the uint64_t array pointed by data_ signed__, ell_, and s_ are the signedness, bitlength and scale
+    // of the input, respectively
+    FixArray input(int party_, int sz, const uint64_t *data_, bool signed__, int ell_, int s_ = 0);
+    // // same as the above function, except that it replicates data_ in all sz positions of the returned FixArray
+    FixArray input(int party_, int sz, uint64_t data_, bool signed__, int ell_, int s_ = 0);
 
     // output function: returns the secret array underlying x in the form of a PUBLIC FixArray
     // party_ denotes which party will receive the output. If party_ is PUBLIC, both parties receive the output.
@@ -174,6 +171,11 @@ public:
     //// cond, x, y must have equal size
     //// x, y must have same signedness, bitlength and scale
     FixArray if_else(const BoolArray &cond, const FixArray &x, const FixArray &y);
+    //// Without Multiplexers: return x[i] if cond[i]=1, else return y[i]
+    //// Both cond, x, and y are PUBLIC.
+    //// cond, x, y must have equal size
+    //// x, ,y must have smae signedness,bitlength and scale
+    FixArray location_if_else(const BoolArray &cond, const FixArray &x, const FixArray &y);
     //// x can be PUBLIC or secret-shared
     //// cond, x must have equal size
     //// y[i] = y (with same signedness, bitlength and scale as x)
@@ -210,7 +212,8 @@ public:
     // The signedness and scale of the output are same as x
     // x can be PUBLIC or secret-shared
     // ell should be greater than or equal to bitlength of x
-    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of x[i]'s. If msb_x provided, this operation is cheaper when x is secret-shared.
+    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of
+    // x[i]'s. If msb_x provided, this operation is cheaper when x is secret-shared.
     FixArray extend(const FixArray &x, int ell, uint8_t *msb_x = nullptr);
 
     // Boolean-to-Arithmetic Operation: returns a FixArray with bitlength ell that holds the same boolean values as x
@@ -222,29 +225,30 @@ public:
     // Multiplication Operation: return x[i] * y[i] (in ell bits)
     // ell specifies the output bitlength
     // Signedness of the output is the same as x and scale is equal to sum of scales of x and y
-    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of x[i]'s. If msb_x provided, this operation is cheaper when x is secret-shared.
+    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of
+    // x[i]'s. If msb_x provided, this operation is cheaper when x is secret-shared.
     //// At least one of x and y must be a secret-shared FixArray
     //// x and y must have equal size
     //// Either signedness of x and y is same, or x is signed (x.signed_ = 1)
     //// ell >= bitlengths of x and y and ell <= sum of bitlengths of x and y (x.ell + y.ell)
     //// msb_y is similar to msb_x but for y
-    FixArray mul(const FixArray &x, const FixArray &y, int ell,
-                 uint8_t *msb_x = nullptr, uint8_t *msb_y = nullptr);
+    FixArray mul(const FixArray &x, const FixArray &y, int ell, uint8_t *msb_x = nullptr, uint8_t *msb_y = nullptr);
     //// x can be PUBLIC or secret-shared
     //// y[i] = y (with same signedness as x; bitlength is ell and scale is 0)
     //// ell >= bitlength of x
-    FixArray mul(const FixArray &x, uint64_t y, int ell,
-                 uint8_t *msb_x = nullptr);
+
+    // TODO::  support two public fixary
+    FixArray public_mul(const FixArray &x, const FixArray &y, int ell);
+
+    FixArray mul(const FixArray &x, uint64_t y, int ell, uint8_t *msb_x = nullptr);
     // same as above mul functions except ell is a constant depending on bitlengths of inputs
     //// ell = sum of bitlengths of x and y (x.ell + y.ell)
-    inline FixArray mul(const FixArray &x, const FixArray &y,
-                        uint8_t *msb_x = nullptr, uint8_t *msb_y = nullptr) {
+    inline FixArray mul(const FixArray &x, const FixArray &y, uint8_t *msb_x = nullptr, uint8_t *msb_y = nullptr) {
         return mul(x, y, x.ell + y.ell, msb_x, msb_y);
     }
+
     //// ell = bitlength of x (x.ell)
-    inline FixArray mul(const FixArray &x, uint64_t y, uint8_t *msb_x = nullptr) {
-        return mul(x, y, x.ell, msb_x);
-    }
+    inline FixArray mul(const FixArray &x, uint64_t y, uint8_t *msb_x = nullptr) { return mul(x, y, x.ell, msb_x); }
 
     // Left Shift: returns x[i] << s[i] (in ell bits)
     // Output bitlength is ell, output signedness and scale are same as that of x
@@ -252,9 +256,9 @@ public:
     // Both x and s must be secret shared FixArray and of equal size
     // ell <= bitlength of x (x.ell) + bound and ell is >= both x.ell and bound
     // s must be an unsigned FixArray with scale 0 and bitlength >= ceil(log2(bound))
-    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of x[i]'s. If msb_x provided, this operation is cheaper
-    FixArray left_shift(const FixArray &x, const FixArray &s, int ell, int bound,
-                        uint8_t *msb_x = nullptr);
+    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of
+    // x[i]'s. If msb_x provided, this operation is cheaper
+    FixArray left_shift(const FixArray &x, const FixArray &s, int ell, int bound, uint8_t *msb_x = nullptr);
 
     // Right Shift: returns x[i] >> s[i]
     // Output bitlength, signedness and scale are same as that of x
@@ -262,24 +266,32 @@ public:
     // Both x and s must be secret shared FixArray and of equal size
     // bound <= bitlength of x (x.ell) and bound + x.ell < 64
     // s must be an unsigned FixArray with scale 0 and bitlength >= ceil(log2(bound))
-    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of x[i]'s. If msb_x provided, this operation is cheaper
-    FixArray right_shift(const FixArray &x, const FixArray &s, int bound,
-                         uint8_t *msb_x = nullptr);
+    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of
+    // x[i]'s. If msb_x provided, this operation is cheaper
+    FixArray right_shift(const FixArray &x, const FixArray &s, int bound, uint8_t *msb_x = nullptr);
 
     // Right Shift: returns x[i] >> s
     // Output scale is x.s - s; Output bitlength and signedness are same as that of x
     // x must be secret shared FixArray
     // s <= bitlength of x (x.ell) and s >= 0
-    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of x[i]'s. If msb_x provided, this operation is cheaper
+    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of
+    // x[i]'s. If msb_x provided, this operation is cheaper
     FixArray right_shift(const FixArray &x, int s, uint8_t *msb_x = nullptr);
-
+    // Right Shift: returns x[i] >> s
+    // Output scale is x.s - s; Output bitlength and signedness are same as that of x
+    // x must be secret shared FixArray
+    // s <= bitlength of x (x.ell) and s >= 0
+    // msb_x is an optional parameter that points to an array holding boolean shares of most significant bit (MSB) of
+    // x[i]'s. If msb_x provided, this operation is cheaper
+    FixArray location_right_shift(const FixArray &x, int s, uint8_t *msb_x = nullptr);
     // Truncate and Reduce: returns x[i] >> s mod 2^{x.ell - s}
     // Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of x
     // x must be secret shared FixArray
     // s < bitlength of x (x.ell) and s >= 0
-    // wrap_x_s is an optional parameter that points to an array holding boolean shares of the wrap-bit of lower s bits of x[i]'s (i.e., wrap_x_s[i] = 1{ share(1, x[i]) mod 2^{s} + share(2, x[i]) mod 2^{s} >= 2^{s} }). If wrap_x_s is provided, this operation is cheaper
-    FixArray truncate_reduce(const FixArray &x, int s = DEFAULT_BITWIDTH,
-                             uint8_t *wrap_x_s = nullptr);
+    // wrap_x_s is an optional parameter that points to an array holding boolean shares of the wrap-bit of lower s bits
+    // of x[i]'s (i.e., wrap_x_s[i] = 1{ share(1, x[i]) mod 2^{s} + share(2, x[i]) mod 2^{s} >= 2^{s} }). If wrap_x_s is
+    // provided, this operation is cheaper
+    FixArray truncate_reduce(const FixArray &x, int s, uint8_t *wrap_x_s = nullptr);
 
     // Round Nearest: returns (x[i] + 2^(s-1)) >> s mod 2^{x.ell - s}
     // Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of x
@@ -290,17 +302,17 @@ public:
         return truncate_reduce(y, s);
     }
 
-    // Truncate with Sticky-Bit: returns (x[i] >> s) mod 2^{x.ell-s} if x[i] mod 2^{s} = 0 and returns ((x[i] >> s) | 1) mod 2^{x.ell-s} otherwise
-    // Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of x
-    // x must be secret shared FixArray
-    // s < bitlength of x (x.ell) and s >= 0
+    // Truncate with Sticky-Bit: returns (x[i] >> s) mod 2^{x.ell-s} if x[i] mod 2^{s} = 0 and returns ((x[i] >> s) | 1)
+    // mod 2^{x.ell-s} otherwise Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of
+    // x x must be secret shared FixArray s < bitlength of x (x.ell) and s >= 0
     FixArray truncate_with_sticky_bit(const FixArray &x, int s);
 
-    // Round (Ties to Even): returns (x[i] >> s) mod 2^{x.ell-s} if x[i] mod 2^{s} < 2^{s-1} or x[i] mod 2^{s+1} = 2^{s-1}, and returns ((x[i] >> s) + 1) mod 2^{x.ell-s} otherwise
-    // Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of x
-    // x must be secret shared FixArray
-    // s <= bitlength of x (x.ell) and s >= 2
-    // TODO: Improve this protocol: perform wrap_and_zero_test to get wrap_x_s and eq_x_s, then do truncate_reduce(x[i] + 2^{s-1}, s, wrap_x_s) and finally, subtract 1 from output out if eq_x_s & (out mod 2) = 1
+    // Round (Ties to Even): returns (x[i] >> s) mod 2^{x.ell-s} if x[i] mod 2^{s} < 2^{s-1} or x[i] mod 2^{s+1} =
+    // 2^{s-1}, and returns ((x[i] >> s) + 1) mod 2^{x.ell-s} otherwise Output bitlength and scale are x.ell-s and
+    // x.s-s; Output signedness is same as that of x x must be secret shared FixArray s <= bitlength of x (x.ell) and s
+    // >= 2
+    // TODO: Improve this protocol: perform wrap_and_zero_test to get wrap_x_s and eq_x_s, then do truncate_reduce(x[i]
+    // + 2^{s-1}, s, wrap_x_s) and finally, subtract 1 from output out if eq_x_s & (out mod 2) = 1
     FixArray round_ties_to_even(const FixArray &x, int s);
 
     // Scale-Up: returns (x[i] << (s - x.s)) mod 2^{ell}
@@ -325,18 +337,22 @@ public:
         assert(x.party != sci::PUBLIC);
         return fix->LT(x, 0);
     }
+    // Most Significant Bit: returns MSB of x in the form of BoolArray
+    // x must be public
+    BoolArray MSB(const FixArray &x, int ell);
 
-    // Wrap Bit and Zero-test Bit: returns 1{ share(1, x[i]) + share(2, x[i]) >= 2^{x.ell} } and 1{ x[i] = 0 } in the form of BoolArrays
-    // x must be secret-shared
+    // Wrap Bit and Zero-test Bit: returns 1{ share(1, x[i]) + share(2, x[i]) >= 2^{x.ell} } and 1{ x[i] = 0 } in the
+    // form of BoolArrays x must be secret-shared
     std::tuple<BoolArray, BoolArray> wrap_and_zero_test(const FixArray &x);
-    // Most Significant Bit and Zero-test Bit: returns 1{ x[i] >= 2^{x.ell-1} } and  1{ x[i] = 0 } in the form of BoolArrays
-    // x must be secret-shared
+    // Most Significant Bit and Zero-test Bit: returns 1{ x[i] >= 2^{x.ell-1} } and  1{ x[i] = 0 } in the form of
+    // BoolArrays x must be secret-shared
     std::tuple<BoolArray, BoolArray> MSB_and_zero_test(const FixArray &x);
 
     BoolArray wrap(const FixArray &x);
 
-    // Equality and Comparison Operations: return (x[i]-y[i] mod 2^{x.ell}) OP 0 (OP = {=, <, >, <=, >=}) in the form of a BoolArray, where the comparison is over signed integers
-    // The comparison operations have correctness for signed inputs if | x[i] | + | y[i] | < 2^{x.ell-1}, and for unsigned inputs if | x[i]-y[i] | < 2^{x.ell-1}
+    // Equality and Comparison Operations: return (x[i]-y[i] mod 2^{x.ell}) OP 0 (OP = {=, <, >, <=, >=}) in the form of
+    // a BoolArray, where the comparison is over signed integers The comparison operations have correctness for signed
+    // inputs if | x[i] | + | y[i] | < 2^{x.ell-1}, and for unsigned inputs if | x[i]-y[i] | < 2^{x.ell-1}
     //// At least one of x and y must be a secret-shared FixArray
     //// x, y must have same size, signedness, bitlength and scale
     BoolArray EQ(const FixArray &x, const FixArray &y);
@@ -344,10 +360,15 @@ public:
     BoolArray GT(const FixArray &x, const FixArray &y);
     BoolArray LE(const FixArray &x, const FixArray &y);
     BoolArray GE(const FixArray &x, const FixArray &y);
+    //// x and y must be possed by one side at the same time
+    BoolArray location_LT(const FixArray &x, const FixArray &y);
+    BoolArray location_GT(const FixArray &x, const FixArray &y);
+
     //// x must be secret-shared
     //// y[i] = y (with same signedness, bitlength and scale as x)
     BoolArray EQ(const FixArray &x, uint64_t y);
     BoolArray LT(const FixArray &x, uint64_t y);
+
     BoolArray GT(const FixArray &x, uint64_t y);
     BoolArray LE(const FixArray &x, uint64_t y);
     BoolArray GE(const FixArray &x, uint64_t y);
@@ -363,22 +384,21 @@ public:
     // x must be secret-shared and an unsigned FixArray
     // l_out < 64, l_in <= 8, and l_in <= x.ell
     // spec_vec.size() must be equal to 2^{l_in}
-    FixArray LUT(const std::vector<uint64_t> &spec_vec, const FixArray &x,
-                 bool signed_, int l_out, int s_out, int l_in);
+    FixArray LUT(const std::vector<uint64_t> &spec_vec, const FixArray &x, bool signed_, int l_out, int s_out,
+                 int l_in);
     // same as above LUT function except l_in is same as x.ell
-    inline FixArray LUT(const std::vector<uint64_t> &spec_vec, const FixArray &x,
-                        bool signed_, int l_out, int s_out) {
+    inline FixArray LUT(const std::vector<uint64_t> &spec_vec, const FixArray &x, bool signed_, int l_out, int s_out) {
         return this->LUT(spec_vec, x, signed_, l_out, s_out, x.ell);
     }
 
-    // Digit Decomposition: returns { x_i }_{i \in [d]}, where x = x_0 || ... || x_{d-1} (x_0 has the LSBs) and d = ceil(x.ell/digit_size)
-    // i-th output digit is unsigned and has scale x.s - i*digit_size
-    // All output digits have bitlength digit_size except the last digit which has bitlength x.ell - (d-1)*digit_size
-    // x must be secret-shared and digit_size should be <= 8
+    // Digit Decomposition: returns { x_i }_{i \in [d]}, where x = x_0 || ... || x_{d-1} (x_0 has the LSBs) and d =
+    // ceil(x.ell/digit_size) i-th output digit is unsigned and has scale x.s - i*digit_size All output digits have
+    // bitlength digit_size except the last digit which has bitlength x.ell - (d-1)*digit_size x must be secret-shared
+    // and digit_size should be <= 8
     std::vector<FixArray> digit_decomposition(const FixArray &x, int digit_size);
 
-    // Most Significant Non-Zero Bit (MSNZB): return { z_i }_{i \in {0, ..., x.ell - 1}}, where z_i = 1 if 2^i <= x < 2^{i+1}
-    // The output is an x.ell sized vector of unsigned FixArrays of bitlength ell and scale 0
+    // Most Significant Non-Zero Bit (MSNZB): return { z_i }_{i \in {0, ..., x.ell - 1}}, where z_i = 1 if 2^i <= x <
+    // 2^{i+1} The output is an x.ell sized vector of unsigned FixArrays of bitlength ell and scale 0
     std::vector<FixArray> msnzb_one_hot(const FixArray &x, int ell);
 
     // Finds max element in x[i], forall i
@@ -392,7 +412,8 @@ public:
 
     // Exponentiation: returns y = e^{-x} in an l_y-bit fixed-point representation with scale s_y
     // x must be secret-shared and signed, and l_y should be >= s_y + 2
-    // digit_size is an optional parameter that should be <= 8. This parameter affects both efficiency and precision (the larger the better)
+    // digit_size is an optional parameter that should be <= 8. This parameter affects both efficiency and precision
+    // (the larger the better)
     FixArray exp(const FixArray &x, int l_y, int s_y, int digit_size = 8);
 
     // Division: return out = nm / dn in an l_out fixed-point representation with scale s_out
@@ -401,9 +422,8 @@ public:
     FixArray div(const FixArray &nm, const FixArray &dn, int l_out, int s_out, bool normalized_dn = false);
 
     // Optimization:
-    FixArray div_batch(const FixArray &nm, const FixArray &dn, int batch_dn_size, int l_out, int s_out, bool normalized_dn = false);
-
-    // FixArray sqrt(const FixArray& x, int l_y, int s_y, bool recp_sqrt = false);
+    FixArray div_batch(const FixArray &nm, const FixArray &dn, int batch_dn_size, int l_out, int s_out,
+                       bool normalized_dn = false);
 
     FixArray sigmoid(const FixArray &x, int l_y, int s_y);
 
@@ -416,5 +436,23 @@ public:
     void send_fix_array(const FixArray &fix_array);
 
     void recv_fix_array(FixArray &fix_array);
+
+    // Truncate and Reduce: returns x[i] >> s mod 2^{x.ell - s}
+    // Output bitlength and scale are x.ell-s and x.s-s; Output signedness is same as that of x
+    // x must be public FixArray
+    // s < bitlength of x (x.ell) and s >= 0
+    FixArray location_truncation(const FixArray &x, int scale);
+
+    inline int64_t unsigned_val(uint64_t x, int bw_x) {
+        uint64_t mask_x = (bw_x == 64 ? -1 : ((1ULL << bw_x) - 1));
+        return x & mask_x;
+    }
+
+    inline int64_t signed_val(uint64_t x, int bw_x) {
+        uint64_t pow_x = (bw_x == 64 ? 0ULL : (1ULL << bw_x));
+        uint64_t mask_x = pow_x - 1;
+        x = x & mask_x;
+        return int64_t(x - ((x >= (pow_x / 2)) * pow_x));
+    }
 };
 #endif

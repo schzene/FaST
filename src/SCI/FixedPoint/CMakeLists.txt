@@ -1,6 +1,7 @@
 add_library(FaST_SCI_FixedPoint
     bool-data.cpp
     fixed-point.cpp
+    fp-math.cpp
 )
 
 target_include_directories(FaST_SCI_FixedPoint PUBLIC

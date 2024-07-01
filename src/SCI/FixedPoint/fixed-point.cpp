@@ -56,8 +56,7 @@ FixArray concat(const vector<FixArray> &x) {
     return ret;
 }
 
-template <class T>
-std::vector<T> FixArray::get_native_type() {
+template <class T> std::vector<T> FixArray::get_native_type() {
     assert(this->party == PUBLIC);
     if constexpr (is_same_v<T, uint32_t> || is_same_v<T, uint64_t>) {
         assert(this->signed_ == false);
@@ -76,11 +75,9 @@ std::ostream &operator<<(std::ostream &os, FixArray &other) {
     vector<double> dbl_other = other.get_native_type<double>();
     os << "(ell: " << other.ell << ", s: " << other.s << ") \t[";
     for (int i = 0; i < other.size; i++) {
-        int64_t data_ =
-            (other.signed_ ? signed_val(other.data[i], other.ell) : other.data[i]);
+        int64_t data_ = (other.signed_ ? signed_val(other.data[i], other.ell) : other.data[i]);
         std::string tmp_data = std::bitset<64>(data_).to_string();
-        os << dbl_other[i] << " int=" << data_ << " ("
-           << tmp_data.substr(64 - other.ell, 64) << ")\t";
+        os << dbl_other[i] << " int=" << data_ << " (" << tmp_data.substr(64 - other.ell, 64) << ")\t";
     }
     os << "]";
     return os;
@@ -154,8 +151,7 @@ FixArray FixOp::output(int party_, const FixArray &x) {
     return ret;
 }
 
-FixArray FixOp::if_else(const BoolArray &cond, const FixArray &x,
-                        const FixArray &y) {
+FixArray FixOp::if_else(const BoolArray &cond, const FixArray &x, const FixArray &y) {
     assert(cond.party != PUBLIC);
     assert(cond.size == x.size && cond.size == y.size);
     assert(x.signed_ == y.signed_);
@@ -171,6 +167,23 @@ FixArray FixOp::if_else(const BoolArray &cond, const FixArray &x,
     } else {
         aux->multiplexer(cond.data, diff.data, ret.data, x.size, x.ell, x.ell);
     }
+    return this->add(ret, y);
+}
+
+FixArray FixOp::location_if_else(const BoolArray &cond, const FixArray &x, const FixArray &y) {
+    assert(cond.size == x.size && cond.size == y.size);
+    assert(x.signed_ == y.signed_);
+    assert(x.ell == y.ell);
+    assert(x.s == y.s);
+
+    FixArray ret(this->party, x.size, x.signed_, x.ell, x.s);
+    FixArray diff = this->sub(x, y);
+    FixArray cond_fix = this->B2A(cond, x.signed_, x.ell);
+    cond_fix.s = x.s;
+    int origin_party = cond_fix.party;
+    cond_fix.party = sci::ALICE;
+    ret = this->mul(cond_fix, diff, x.ell);
+    ret = this->location_truncation(ret, y.s);
     return this->add(ret, y);
 }
 
@@ -219,6 +232,7 @@ FixArray FixOp::add(const FixArray &x, uint64_t y) {
 }
 
 FixArray FixOp::sub(const FixArray &x, const FixArray &y) {
+
     FixArray neg_y = this->mul(y, uint64_t(-1));
     return this->add(x, neg_y);
 }
@@ -268,13 +282,32 @@ FixArray FixOp::B2A(const BoolArray &x, bool signed_, int ell) {
     return ret;
 }
 
-FixArray FixOp::mul(const FixArray &x, const FixArray &y, int ell,
-                    uint8_t *msb_x, uint8_t *msb_y) {
+FixArray FixOp::public_mul(const FixArray &x, const FixArray &y, int ell) {
+    assert(x.party == ALICE && y.party == ALICE || x.party == BOB && y.party == BOB ||
+           x.party == PUBLIC && y.party == PUBLIC);
+    assert(x.size == y.size);
+    assert(ell >= x.ell && ell >= y.ell && ell <= x.ell + y.ell);
+    assert(ell < 64);
+    FixArray ret(x.party, x.size, x.signed_, x.ell, x.s + y.s);
+    uint64_t ret_mask = ret.ell_mask();
+    FixArray x_ext(x.party, x.size, x.signed_, x.ell, x.s);
+    FixArray y_ext(y.party, y.size, y.signed_, y.ell, y.s);
+
+    for (size_t i = 0; i < x.size; i++) {
+        x_ext.data[i] = uint64_t(signed_val(x.data[i], x.ell)) & ret_mask;
+        y_ext.data[i] = uint64_t(signed_val(y.data[i], y.ell)) & ret_mask;
+        ret.data[i] = (x_ext.data[i] * y_ext.data[i]) & ret_mask;
+    }
+    return ret;
+}
+
+FixArray FixOp::mul(const FixArray &x, const FixArray &y, int ell, uint8_t *msb_x, uint8_t *msb_y) {
     assert(x.party != PUBLIC || y.party != PUBLIC);
     assert(x.size == y.size);
     assert(x.signed_ || (x.signed_ == y.signed_));
     assert(ell >= x.ell && ell >= y.ell && ell <= x.ell + y.ell);
     assert(ell < 64);
+
     FixArray ret(this->party, x.size, x.signed_, ell, x.s + y.s);
     if (x.party == PUBLIC || y.party == PUBLIC) {
         FixArray x_ext = this->extend(x, ell, msb_x);
@@ -284,8 +317,8 @@ FixArray FixOp::mul(const FixArray &x, const FixArray &y, int ell,
             ret.data[i] = (x_ext.data[i] * y_ext.data[i]) & ret_mask;
         }
     } else {
-        mult->hadamard_product(x.size, x.data, y.data, ret.data, x.ell, y.ell, ell,
-                               x.signed_, y.signed_, MultMode::None, msb_x, msb_y);
+        mult->hadamard_product(x.size, x.data, y.data, ret.data, x.ell, y.ell, ell, x.signed_, y.signed_,
+                               MultMode::None, msb_x, msb_y);
     }
     return ret;
 }
@@ -305,16 +338,14 @@ FixArray FixOp::mul(const FixArray &x, uint64_t y, int ell, uint8_t *msb_x) {
     return ret;
 }
 
-FixArray FixOp::left_shift(const FixArray &x, const FixArray &s, int ell,
-                           int bound, uint8_t *msb_x) {
+FixArray FixOp::left_shift(const FixArray &x, const FixArray &s, int ell, int bound, uint8_t *msb_x) {
     assert(x.party != PUBLIC && s.party != PUBLIC);
     assert(x.size == s.size);
     assert(ell <= x.ell + bound && ell >= x.ell && ell >= bound);
     int m = ceil(log2(bound + 1));
     assert(s.signed_ == false && s.s == 0 && s.ell >= m);
     int pow2_s_ell = bound + 2;
-    if (pow2_s_ell > ell)
-        pow2_s_ell = ell;
+    if (pow2_s_ell > ell) pow2_s_ell = ell;
     FixArray pow2_s(x.party, x.size, x.signed_, pow2_s_ell, 0);
     int M = 1 << m;
     uint64_t pow2_s_mask = pow2_s.ell_mask();
@@ -342,8 +373,7 @@ FixArray FixOp::left_shift(const FixArray &x, const FixArray &s, int ell,
             delete[] spec[i];
         delete[] spec;
     } else {
-        aux->lookup_table<uint64_t>(nullptr, s.data, pow2_s.data, x.size, m,
-                                    pow2_s_ell);
+        aux->lookup_table<uint64_t>(nullptr, s.data, pow2_s.data, x.size, m, pow2_s_ell);
     }
     BoolArray all_0 = bool_op->input(ALICE, x.size, uint8_t(0));
     FixArray ret = this->mul(x, pow2_s, ell, msb_x, all_0.data);
@@ -351,8 +381,7 @@ FixArray FixOp::left_shift(const FixArray &x, const FixArray &s, int ell,
     return ret;
 }
 
-FixArray FixOp::right_shift(const FixArray &x, const FixArray &s, int bound,
-                            uint8_t *msb_x) {
+FixArray FixOp::right_shift(const FixArray &x, const FixArray &s, int bound, uint8_t *msb_x) {
     assert(x.party != PUBLIC && s.party != PUBLIC);
     assert(x.size == s.size);
     assert(bound <= x.ell && bound + x.ell < 64);
@@ -373,8 +402,7 @@ FixArray FixOp::right_shift(const FixArray &x, const FixArray &s, int bound,
             for (int j = 0; j < M; j++) {
                 int idx = (s.data[i] + j) & s_mask;
                 int exp = bound - idx;
-                if (exp < 0)
-                    exp += M;
+                if (exp < 0) exp += M;
                 spec[i][j] = ((1ULL << exp) - pow2_neg_s.data[i]) & pow2_neg_s_mask;
             }
         }
@@ -384,8 +412,7 @@ FixArray FixOp::right_shift(const FixArray &x, const FixArray &s, int bound,
             delete[] spec[i];
         delete[] spec;
     } else {
-        aux->lookup_table<uint64_t>(nullptr, s.data, pow2_neg_s.data, x.size, m,
-                                    bound + 2);
+        aux->lookup_table<uint64_t>(nullptr, s.data, pow2_neg_s.data, x.size, m, bound + 2);
     }
     BoolArray all_0 = bool_op->input(ALICE, x.size, uint8_t(0));
     FixArray ret = this->mul(x, pow2_neg_s, x.ell + bound, msb_x, all_0.data);
@@ -399,6 +426,14 @@ FixArray FixOp::right_shift(const FixArray &x, int s, uint8_t *msb_x) {
     assert(s <= x.ell && s >= 0);
     FixArray ret(x.party, x.size, x.signed_, x.ell, x.s - s);
     trunc->truncate(x.size, x.data, ret.data, s, x.ell, x.signed_, msb_x);
+    return ret;
+}
+
+FixArray FixOp::location_right_shift(const FixArray &x, int s, uint8_t *msb_x) {
+    assert(x.party != PUBLIC);
+    assert(s <= x.ell && s >= 0);
+    FixArray ret(x.party, x.size, x.signed_, x.ell, x.s - s);
+    this->location_truncation(x, s);
     return ret;
 }
 
@@ -421,8 +456,7 @@ FixArray FixOp::truncate_reduce(const FixArray &x, int s, uint8_t *wrap_x_s) {
 FixArray FixOp::truncate_with_sticky_bit(const FixArray &x, int s) {
     assert(x.party != PUBLIC);
     assert(s < x.ell && s >= 0);
-    if (s == 0)
-        return x;
+    if (s == 0) return x;
     FixArray x_s = reduce(x, s);
     BoolArray wrap, zero_test;
     tie(wrap, zero_test) = wrap_and_zero_test(x_s);
@@ -512,6 +546,18 @@ BoolArray FixOp::LSB(const FixArray &x) {
     BoolArray ret(x.party, x.size);
     for (int i = 0; i < x.size; i++) {
         ret.data[i] = x.data[i] & 1;
+    }
+    return ret;
+}
+
+BoolArray FixOp::MSB(const FixArray &x, int ell) {
+    assert(ell <= 64);
+    int size = x.size;
+    int32_t shift = ell - 1;
+    BoolArray ret(x.party, x.size);
+
+    for (int i = 0; i < x.size; i++) {
+        ret.data[i] = uint8_t((x.data[i] >> shift) & 1);
     }
     return ret;
 }
@@ -609,17 +655,20 @@ BoolArray FixOp::LT(const FixArray &x, const FixArray &y) {
     return ret;
 }
 
-BoolArray FixOp::GT(const FixArray &x, const FixArray &y) {
-    return this->LT(y, x);
+BoolArray FixOp::location_LT(const FixArray &x, const FixArray &y) {
+    BoolArray ret(this->party, x.size);
+    FixArray diff = this->sub(x, y);
+    ret = this->MSB(diff, diff.ell);
+    return ret;
 }
 
-BoolArray FixOp::LE(const FixArray &x, const FixArray &y) {
-    return bool_op->NOT(this->LT(y, x));
-}
+BoolArray FixOp::GT(const FixArray &x, const FixArray &y) { return this->LT(y, x); }
 
-BoolArray FixOp::GE(const FixArray &x, const FixArray &y) {
-    return bool_op->NOT(this->LT(x, y));
-}
+BoolArray FixOp::location_GT(const FixArray &x, const FixArray &y) { return this->location_LT(y, x); }
+
+BoolArray FixOp::LE(const FixArray &x, const FixArray &y) { return bool_op->NOT(this->LT(y, x)); }
+
+BoolArray FixOp::GE(const FixArray &x, const FixArray &y) { return bool_op->NOT(this->LT(x, y)); }
 
 BoolArray FixOp::EQ(const FixArray &x, uint64_t y) {
     assert(x.party != PUBLIC);
@@ -668,8 +717,7 @@ tuple<BoolArray, BoolArray> FixOp::LT_and_EQ(const FixArray &x, uint64_t y) {
     return MSB_and_zero_test(diff);
 }
 
-FixArray FixOp::LUT(const vector<uint64_t> &spec_vec, const FixArray &x,
-                    bool signed_, int l_out, int s_out, int l_in) {
+FixArray FixOp::LUT(const vector<uint64_t> &spec_vec, const FixArray &x, bool signed_, int l_out, int s_out, int l_in) {
     assert(x.party != PUBLIC);
     assert(x.signed_ == false);
     assert(l_out < 64);
@@ -771,8 +819,7 @@ FixArray FixOp::LUT(const vector<uint64_t> &spec_vec, const FixArray &x,
             delete[] spec[i];
         delete[] spec;
     } else {
-        aux->lookup_table<uint64_t>(nullptr, x_red.data, ret.data, x.size, l_in,
-                                    l_out);
+        aux->lookup_table<uint64_t>(nullptr, x_red.data, ret.data, x.size, l_in, l_out);
     }
     return ret;
 }
@@ -842,8 +889,7 @@ FixArray FixOp::exp(const FixArray &x, int l_y, int s_y, int digit_size) {
     BoolArray all_0 = bool_op->input(ALICE, x.size, uint8_t(0));
     for (int i = 1; i < num_digits; i *= 2) {
         for (int j = 0; j < num_digits and j + i < num_digits; j += 2 * i) {
-            digits_exp[j] = this->mul(digits_exp[j + i], digits_exp[j],
-                                      2 * s_y + 2, all_0.data, all_0.data);
+            digits_exp[j] = this->mul(digits_exp[j + i], digits_exp[j], 2 * s_y + 2, all_0.data, all_0.data);
             digits_exp[j] = this->truncate_reduce(digits_exp[j], s_y);
         }
     }
@@ -983,8 +1029,7 @@ inline uint64_t recp_lookup_c1(uint64_t index, int m) {
 }
 
 FixArray FixOp::div(const FixArray &nm, const FixArray &dn, int l_out, int s_out, bool normalized_dn) {
-    if (!normalized_dn)
-        assert(dn.signed_ == false);
+    if (!normalized_dn) assert(dn.signed_ == false);
     assert(nm.party != PUBLIC && dn.party != PUBLIC);
     assert(nm.size == dn.size);
     assert(s_out <= dn.s);
@@ -1080,9 +1125,9 @@ FixArray FixOp::div(const FixArray &nm, const FixArray &dn, int l_out, int s_out
     }
 }
 
-FixArray FixOp::div_batch(const FixArray &nm, const FixArray &dn, int batch_dn_size, int l_out, int s_out, bool normalized_dn) {
-    if (!normalized_dn)
-        assert(dn.signed_ == false);
+FixArray FixOp::div_batch(const FixArray &nm, const FixArray &dn, int batch_dn_size, int l_out, int s_out,
+                          bool normalized_dn) {
+    if (!normalized_dn) assert(dn.signed_ == false);
     assert(nm.party != PUBLIC && dn.party != PUBLIC);
     assert(nm.size == dn.size * batch_dn_size);
     assert(s_out <= dn.s);
@@ -1356,7 +1401,7 @@ void FixOp::send_fix_array(const FixArray &fix_array) {
     iopack->io->flush();
 }
 
-void FixOp::recv_fix_array(FixArray &fix_array) {  
+void FixOp::recv_fix_array(FixArray &fix_array) {
     iopack->io->recv_data(&fix_array.party, sizeof(int));
     if (fix_array.party == sci::PUBLIC) {
         iopack->io->recv_data(&fix_array.size, sizeof(int));
@@ -1369,4 +1414,16 @@ void FixOp::recv_fix_array(FixArray &fix_array) {
         iopack->io->recv_data(&fix_array.s, sizeof(int));
     }
     iopack->io->flush();
+}
+
+FixArray FixOp::location_truncation(const FixArray &x, int scale) {
+
+    assert(scale <= x.ell && scale >= 0);
+
+    FixArray ret(x.party, x.size, x.signed_, x.ell, x.s - scale);
+    uint64_t ret_mask = ret.ell_mask();
+    for (size_t i = 0; i < x.size; i++) {
+        ret.data[i] = (x.data[i] >> scale) & ret_mask;
+    }
+    return ret;
 }

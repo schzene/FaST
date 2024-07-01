@@ -1,7 +1,7 @@
 find_package(OpenMP REQUIRED)
 
 add_library(FaST_Utils
-    # conversion.cpp
+    conversion.cpp
     he-bfv.cpp
     he-tools.cpp
     mat-tools.cpp

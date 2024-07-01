@@ -1,27 +1,24 @@
-#ifndef FAST_HE_BFV_CONVERSION_H__
-#define FAST_HE_BFV_CONVERSION_H__
+#ifndef FAST_CONVERSION_H__
+#define FAST_CONVERSION_H__
 
-#include "SCI/utils.h"
+#include "vector"
 #include "he-bfv.h"
-#include <vector>
+#include "SCI/utils.h"
 
-class Conversion {
+class Conversion
+{
 public:
-    BFVKey *party;
-    BFVParm *bfvparm;
+    Conversion() {}
 
-    Conversion(BFVKey *_party, BFVParm *_bfvparm, BatchEncoder *_encoder) : party(_party), bfvparm(_bfvparm) {}
     ~Conversion() {}
 
-    void he_to_ss(BFVLongCiphertext &ciphertext, uint64_t *share, Evaluator *evaluator);
+    void Prime_to_Ring(int party, const uint64_t *input, uint64_t *output, int length, int ell, int64_t plain_prime, int s_in, int s_out, FPMath *fpmath);
 
-    inline void he_to_ss(BFVLongCiphertext &ciphertext, bfv_matrix share, Evaluator *evaluator) {
-        he_to_ss(ciphertext, share.data(), evaluator);
-    }
+    void Prime_to_Ring(const uint64_t *input, uint64_t *output, int length, int ell, int64_t plain_prime, int s_in, int s_out, FPMath *fpmath);
 
-    void ss_to_he(uint64_t *share, BFVLongCiphertext &ciphertext, int length, int bw);
+    void Ring_to_Prime(const uint64_t *input, uint64_t *output, int length, int ell, int64_t plain_mod);
 
-    void ss_to_he(BFVKey *bfvkey, uint64_t *share, BFVLongCiphertext &ciphertext, int length, int bw);
+    void Ring_to_Prime(const uint64_t input, uint64_t output, int ell, int64_t plain_mod);
 };
 
-#endif
+#endif // FAST_HE_BFV_CONVERSION_H__

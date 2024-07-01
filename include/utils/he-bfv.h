@@ -1,5 +1,6 @@
 #ifndef FAST_HE_BFV_TOOLS_H__
 #define FAST_HE_BFV_TOOLS_H__
+
 #include <cassert>
 #include <sstream>
 #include <string>
@@ -7,12 +8,12 @@
 #include "SCI/utils.h" // prg.h & io & arg
 #include <seal/seal.h>
 
-typedef vector<uint64_t> bfv_matrix;
-
 using std::map;
 using std::string;
 using std::vector;
 using namespace seal;
+
+typedef vector<uint64_t> bfv_matrix;
 
 const map<int32_t, uint64_t> default_prime_mod{
     {25,      33832961},
@@ -99,8 +100,7 @@ public:
     size_t len;
     BFVLongCiphertext() {}
     BFVLongCiphertext(const Ciphertext &ct);
-    BFVLongCiphertext(BFVParm *contex, uint64_t data,
-                      BFVKey *party); // TODO: len =1
+    BFVLongCiphertext(BFVParm *contex, uint64_t data, BFVKey *party); // TODO: len =1
     BFVLongCiphertext(BFVParm *contex, uint64_t *data, size_t len, BFVKey *party);
     BFVLongCiphertext(const BFVLongPlaintext &lpt, BFVKey *party);
     BFVLongPlaintext decrypt(BFVKey *party) const;
@@ -121,7 +121,14 @@ public:
         }
     }
 
+    inline void mod_switch_to_next_inplace(Evaluator *evaluator) {
+        for (size_t i = 0; i < cipher_data.size(); i++) {
+            evaluator->mod_switch_to_next_inplace(cipher_data[i]);
+        }
+    }
+
     inline const parms_id_type parms_id() const noexcept { return cipher_data[0].parms_id(); }
 };
 
-#endif // FAST_HE_BFV_TOOLS_H__
+#endif
+// FAST_HE_BFV_TOOLS_H__
